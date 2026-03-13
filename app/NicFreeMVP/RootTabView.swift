@@ -30,6 +30,8 @@ struct RootTabView: View {
                 .tag(Tab.progress)
         }
         .tint(Color.ink)
+        .toolbarBackground(Color.white.opacity(0.95), for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
     }
 }
 

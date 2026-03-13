@@ -14,48 +14,75 @@ struct ProgressView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    HStack(spacing: 16) {
-                        StatCard(title: "Current streak", value: "\(appState.nicotineFreeDays) days")
-                        StatCard(title: "Cravings defeated", value: "\(appState.cravingsDefeated)")
-                    }
+            ZStack {
+                AppBackground()
 
-                    CardSection {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Milestones")
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(Color.ink)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 22) {
+                        ScreenHeader(
+                            eyebrow: "Momentum",
+                            title: "Progress worth seeing.",
+                            subtitle: "A simple view of your streak, the cravings you’ve moved through, and the milestones coming into reach."
+                        )
 
-                            ForEach(milestones) { milestone in
+                        HStack(spacing: 16) {
+                            StatCard(
+                                title: "Current streak",
+                                value: "\(appState.nicotineFreeDays) days",
+                                symbol: "calendar"
+                            )
+                            StatCard(
+                                title: "Cravings defeated",
+                                value: "\(appState.cravingsDefeated)",
+                                symbol: "bolt.shield"
+                            )
+                        }
+
+                        CardSection {
+                            VStack(alignment: .leading, spacing: 18) {
                                 HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(milestone.title)
-                                            .font(.headline)
-                                            .foregroundStyle(Color.ink)
-                                        Text(milestone.progressText)
-                                            .font(.footnote)
-                                            .foregroundStyle(Color.secondaryText)
-                                    }
+                                    Text("Milestones")
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(Color.ink)
 
                                     Spacer()
 
-                                    Text(milestone.isComplete ? "Done" : "Next")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundStyle(milestone.isComplete ? Color.greenBadgeText : Color.pendingBadgeText)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(milestone.isComplete ? Color.greenBadge : Color.pendingBadge)
-                                        .clipShape(Capsule())
+                                    Text("\(milestones.filter(\.isComplete).count)/\(milestones.count)")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(Color.secondaryText)
+                                }
+
+                                ForEach(milestones) { milestone in
+                                    MilestoneRow(milestone: milestone)
                                 }
                             }
                         }
+
+                        CardSection(fill: AnyShapeStyle(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.95), Color(red: 0.96, green: 0.95, blue: 0.92)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Keep going gently.")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(Color.ink)
+
+                                Text("Consistency matters more than intensity. Every craving you outlast makes the next one easier to face.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.secondaryText)
+                                    .lineSpacing(4)
+                            }
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+                    .padding(.bottom, 32)
                 }
-                .padding(20)
             }
-            .background(Color.appBackground.ignoresSafeArea())
-            .navigationTitle("Progress")
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 }
@@ -72,6 +99,47 @@ private struct Milestone: Identifiable {
 
     var progressText: String {
         isComplete ? "Reached" : "\(currentValue)/\(target)"
+    }
+}
+
+private struct MilestoneRow: View {
+    let milestone: Milestone
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(milestone.isComplete ? Color.greenBadge : Color.pendingBadge)
+                    .frame(width: 48, height: 48)
+
+                Image(systemName: milestone.isComplete ? "checkmark" : "sparkles")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(milestone.isComplete ? Color.greenBadgeText : Color.pendingBadgeText)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(milestone.title)
+                    .font(.headline)
+                    .foregroundStyle(Color.ink)
+
+                Text(milestone.progressText)
+                    .font(.footnote)
+                    .foregroundStyle(Color.secondaryText)
+            }
+
+            Spacer()
+
+            Text(milestone.isComplete ? "Done" : "Next")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(milestone.isComplete ? Color.greenBadgeText : Color.pendingBadgeText)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(milestone.isComplete ? Color.greenBadge : Color.pendingBadge)
+                .clipShape(Capsule())
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.7))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
