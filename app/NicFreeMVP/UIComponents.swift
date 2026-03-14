@@ -1,5 +1,76 @@
 import SwiftUI
 
+struct GlassPanel: ViewModifier {
+    var cornerRadius: CGFloat = 22
+    var tint: Color = .white
+    var tintOpacity: Double = 0.18
+    var shadowOpacity: Double = 0.09
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        tint.opacity(tintOpacity),
+                                        Color.white.opacity(0.06)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.55),
+                                Color.white.opacity(0.18)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: Color.shadowColor.opacity(shadowOpacity), radius: 18, x: 0, y: 10)
+            .shadow(color: Color.white.opacity(0.35), radius: 1, x: 0, y: 1)
+    }
+}
+
+extension View {
+    func glassPanel(
+        cornerRadius: CGFloat = 22,
+        tint: Color = .white,
+        tintOpacity: Double = 0.18,
+        shadowOpacity: Double = 0.09
+    ) -> some View {
+        modifier(
+            GlassPanel(
+                cornerRadius: cornerRadius,
+                tint: tint,
+                tintOpacity: tintOpacity,
+                shadowOpacity: shadowOpacity
+            )
+        )
+    }
+
+    @ViewBuilder
+    func `if`<Transformed: View>(_ condition: Bool, transform: (Self) -> Transformed) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
+
 struct AppBackground: View {
     var body: some View {
         ZStack {
@@ -157,7 +228,7 @@ struct CardSection<Content: View>: View {
             .padding(22)
             .background(fill)
             .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .stroke(Color.white.opacity(0.55), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -172,50 +243,62 @@ struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(isEnabled ? Color.white : Color.disabledText)
-            .background(
+            .background {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: isEnabled
+                                        ? [
+                                            Color.buttonTop.opacity(configuration.isPressed ? 0.95 : 0.98),
+                                            Color.buttonBottom,
+                                            Color.buttonBottom.opacity(0.96)
+                                        ]
+                                        : [Color.disabledButton, Color.disabledButton],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(isEnabled ? 0.36 : 0),
+                                Color.white.opacity(isEnabled ? 0.08 : 0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .overlay(alignment: .top) {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: isEnabled
-                                ? [Color.buttonTop.opacity(configuration.isPressed ? 0.92 : 1), Color.buttonBottom]
-                                : [Color.disabledButton, Color.disabledButton],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            colors: [
+                                Color.white.opacity(isEnabled ? 0.22 : 0),
+                                Color.white.opacity(0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
                     )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.white.opacity(isEnabled ? 0.18 : 0), lineWidth: 1)
-            )
-            .shadow(color: isEnabled ? Color.buttonBottom.opacity(configuration.isPressed ? 0.18 : 0.24) : .clear, radius: 18, x: 0, y: 10)
-            .scaleEffect(configuration.isPressed ? 0.99 : 1)
+                    .frame(height: 22)
+                    .clipShape(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    )
+            }
+            .shadow(color: isEnabled ? Color.buttonBottom.opacity(configuration.isPressed ? 0.16 : 0.22) : .clear, radius: 16, x: 0, y: 10)
+            .shadow(color: isEnabled ? Color.white.opacity(0.12) : .clear, radius: 1, x: 0, y: 1)
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
     }
-}
-
-extension Color {
-    static let appBackgroundTop = Color(red: 0.98, green: 0.97, blue: 0.95)
-    static let appBackgroundBottom = Color(red: 0.93, green: 0.95, blue: 0.97)
-    static let cardBackground = Color.white
-    static let ink = Color(red: 0.12, green: 0.16, blue: 0.23)
-    static let secondaryText = Color(red: 0.39, green: 0.44, blue: 0.50)
-    static let accentInk = Color(red: 0.30, green: 0.43, blue: 0.45)
-    static let accentWash = Color(red: 0.91, green: 0.95, blue: 0.94)
-    static let mist = Color(red: 0.88, green: 0.93, blue: 0.91)
-    static let heroTop = Color(red: 0.96, green: 0.93, blue: 0.89)
-    static let heroBottom = Color(red: 0.88, green: 0.93, blue: 0.92)
-    static let heroSecondaryText = Color(red: 0.35, green: 0.41, blue: 0.45)
-    static let heroAccent = Color(red: 0.42, green: 0.58, blue: 0.51)
-    static let buttonTop = Color(red: 0.27, green: 0.38, blue: 0.41)
-    static let buttonBottom = Color(red: 0.18, green: 0.27, blue: 0.30)
-    static let disabledButton = Color(red: 0.77, green: 0.80, blue: 0.82)
-    static let disabledText = Color(red: 0.95, green: 0.96, blue: 0.97)
-    static let greenBadge = Color(red: 0.89, green: 0.96, blue: 0.92)
-    static let greenBadgeText = Color(red: 0.18, green: 0.42, blue: 0.28)
-    static let pendingBadge = Color(red: 0.93, green: 0.94, blue: 0.96)
-    static let pendingBadgeText = Color(red: 0.42, green: 0.46, blue: 0.53)
-    static let shadowColor = Color(red: 0.17, green: 0.20, blue: 0.24)
 }
 
 #Preview {

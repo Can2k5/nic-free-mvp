@@ -46,13 +46,40 @@ struct CravingRescueView: View {
                             VStack(spacing: 22) {
                                 ZStack {
                                     Circle()
-                                        .fill(Color.white.opacity(0.82))
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            Circle()
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color.white.opacity(0.42),
+                                                            Color.mist.opacity(0.18)
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                        )
                                         .frame(width: 232, height: 232)
                                         .shadow(color: Color.shadowColor.opacity(0.08), radius: 25, x: 0, y: 14)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color.white.opacity(0.55), lineWidth: 1)
+                                        )
 
                                     Circle()
                                         .stroke(Color.accentWash, lineWidth: 18)
                                         .frame(width: 210, height: 210)
+
+                                    Circle()
+                                        .trim(from: 0.06, to: 0.32)
+                                        .stroke(
+                                            Color.white.opacity(timerActive ? 0.88 : 0.42),
+                                            style: StrokeStyle(lineWidth: 7, lineCap: .round)
+                                        )
+                                        .frame(width: 210, height: 210)
+                                        .rotationEffect(.degrees(-90))
+                                        .blur(radius: timerActive ? 0.2 : 0.6)
 
                                     VStack(spacing: 8) {
                                         Text("Breathe in. Breathe out.")
@@ -93,6 +120,9 @@ struct CravingRescueView: View {
                                             .multilineTextAlignment(.center)
                                     }
                                     .padding(.top, 8)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 12)
+                                    .glassPanel(cornerRadius: 18, tint: Color.white, tintOpacity: 0.14, shadowOpacity: 0.04)
                                 }
                                 .padding(.horizontal, 10)
                             }

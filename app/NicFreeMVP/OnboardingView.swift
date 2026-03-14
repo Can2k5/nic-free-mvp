@@ -149,11 +149,19 @@ struct OnboardingView: View {
             )
 
             OnboardingCard {
-                SelectionChipGrid(
-                    items: goalOptions,
-                    selection: draftGoals,
-                    action: toggleGoal
-                )
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Choose up to 3")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.secondaryText)
+
+                    SelectionChipGrid(
+                        items: goalOptions,
+                        selection: draftGoals,
+                        selectionLimit: 3,
+                        iconForItem: chipSymbol(for:),
+                        action: toggleGoal
+                    )
+                }
             }
 
             Spacer()
@@ -173,11 +181,19 @@ struct OnboardingView: View {
             )
 
             OnboardingCard {
-                SelectionChipGrid(
-                    items: triggerOptions,
-                    selection: draftTriggers,
-                    action: toggleTrigger
-                )
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Choose up to 3")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.secondaryText)
+
+                    SelectionChipGrid(
+                        items: triggerOptions,
+                        selection: draftTriggers,
+                        selectionLimit: 3,
+                        iconForItem: chipSymbol(for:),
+                        action: toggleTrigger
+                    )
+                }
             }
 
             Spacer()
@@ -249,10 +265,25 @@ struct OnboardingView: View {
                             }
                             .padding(.horizontal, 18)
                             .padding(.vertical, 18)
-                            .background(
+                            .background {
                                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(lastUseSelection == option ? Color.buttonBottom : Color.white.opacity(0.72))
-                            )
+                                    .fill(lastUseSelection == option ? Color.clear : Color.white.opacity(0.001))
+                                    .if(lastUseSelection == option) { view in
+                                        view.overlay(
+                                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [Color.buttonTop, Color.buttonBottom],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                        )
+                                    }
+                            }
+                            .if(lastUseSelection != option) { view in
+                                view.glassPanel(cornerRadius: 20, tint: Color.white, tintOpacity: 0.16, shadowOpacity: 0.05)
+                            }
                         }
                         .buttonStyle(.plain)
                     }
@@ -311,7 +342,7 @@ struct OnboardingView: View {
 
             primaryButton(title: "Enter the app") {
                 applyOnboardingValues()
-                appState.onboardingCompleted = true
+                appState.hasCompletedOnboarding = true
             }
         }
     }
@@ -365,8 +396,34 @@ struct OnboardingView: View {
     private func toggleItem(_ item: String, in array: inout [String]) {
         if let index = array.firstIndex(of: item) {
             array.remove(at: index)
-        } else {
+        } else if array.count < 3 {
             array.append(item)
+        }
+    }
+
+    private func chipSymbol(for item: String) -> String {
+        switch item {
+        case "Better health": return "heart"
+        case "More control": return "dial.low"
+        case "More energy": return "bolt"
+        case "Better sleep": return "moon"
+        case "Less anxiety": return "wind"
+        case "Save money": return "eurosign"
+        case "Better focus": return "scope"
+        case "Freedom": return "bird"
+        case "Fitness": return "figure.run"
+        case "Confidence": return "sparkles"
+        case "Stress": return "cloud.rain"
+        case "Boredom": return "hourglass"
+        case "Coffee": return "cup.and.saucer"
+        case "After meals": return "fork.knife"
+        case "Alcohol": return "wineglass"
+        case "Social situations": return "person.2"
+        case "Driving": return "car"
+        case "Nighttime": return "moon.stars"
+        case "Loneliness": return "person"
+        case "Habit / autopilot": return "repeat"
+        default: return "circle"
         }
     }
 
@@ -423,36 +480,122 @@ struct OnboardingView: View {
 private struct SelectionChipGrid: View {
     let items: [String]
     let selection: [String]
+    let selectionLimit: Int
+    let iconForItem: (String) -> String
     let action: (String) -> Void
 
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    private let columns = [
+        GridItem(.flexible(minimum: 120, maximum: 220), spacing: 12),
+        GridItem(.flexible(minimum: 120, maximum: 220), spacing: 12)
+    ]
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
             ForEach(items, id: \.self) { item in
                 let selected = selection.contains(item)
+                let disabled = !selected && selection.count >= selectionLimit
 
-                Button {
+                SelectionChip(
+                    title: item,
+                    symbol: iconForItem(item),
+                    isSelected: selected,
+                    isDisabled: disabled
+                ) {
                     action(item)
-                } label: {
-                    HStack {
-                        Text(item)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(selected ? Color.white : Color.ink)
-                            .multilineTextAlignment(.leading)
-                        Spacer(minLength: 6)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 15)
-                    .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(selected ? Color.buttonBottom : Color.white.opacity(0.72))
-                    )
                 }
-                .buttonStyle(.plain)
+                .opacity(disabled ? 0.42 : 1)
             }
         }
+    }
+}
+
+private struct SelectionChip: View {
+    let title: String
+    let symbol: String
+    let isSelected: Bool
+    let isDisabled: Bool
+    let action: () -> Void
+
+    @State private var isPressed = false
+
+    var body: some View {
+        Button {
+            guard !isDisabled else { return }
+
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.55)) {
+                isPressed = true
+            }
+
+            action()
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
+                    isPressed = false
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.footnote.weight(.semibold))
+
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+            }
+            .foregroundStyle(isSelected ? Color.white : Color.ink)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .opacity(isSelected ? 0 : 1)
+                    .overlay {
+                        if isSelected {
+                            Capsule(style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.buttonTop.opacity(0.98),
+                                            Color.buttonBottom
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        } else {
+                            Capsule(style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(0.48),
+                                            Color.mist.opacity(0.28)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        }
+                    }
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: isSelected
+                                ? [Color.white.opacity(0.22), Color.white.opacity(0.06)]
+                                : [Color.white.opacity(0.85), Color.white.opacity(0.24)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: isSelected ? Color.buttonBottom.opacity(0.16) : Color.shadowColor.opacity(0.04), radius: isSelected ? 12 : 8, x: 0, y: isSelected ? 7 : 4)
+            .scaleEffect(isPressed ? 1.05 : 1)
+        }
+        .buttonStyle(.plain)
     }
 }
 

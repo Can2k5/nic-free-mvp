@@ -18,6 +18,7 @@
 		A10000000000000000000019 /* SlipRecoveryFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000B /* SlipRecoveryFlowView.swift */; };
 		A1000000000000000000001A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000C /* SettingsView.swift */; };
 		A1000000000000000000001B /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* OnboardingView.swift */; };
+		A1000000000000000000001C /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000E /* AppColors.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,7 @@
 		A1000000000000000000000B /* SlipRecoveryFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlipRecoveryFlowView.swift; sourceTree = "<group>"; };
 		A1000000000000000000000C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1000000000000000000000D /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		A1000000000000000000000E /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +72,7 @@
 				A1000000000000000000000B /* SlipRecoveryFlowView.swift */,
 				A1000000000000000000000C /* SettingsView.swift */,
 				A1000000000000000000000D /* OnboardingView.swift */,
+				A1000000000000000000000E /* AppColors.swift */,
 				A10000000000000000000008 /* Assets.xcassets */,
 				A10000000000000000000009 /* Info.plist */,
 			);
@@ -153,6 +156,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000012 /* AppState.swift in Sources */,
+				A1000000000000000000001C /* AppColors.swift in Sources */,
 				A10000000000000000000015 /* CravingRescueView.swift in Sources */,
 				A10000000000000000000014 /* HomeView.swift in Sources */,
 				A10000000000000000000011 /* NicFreeMVPApp.swift in Sources */,

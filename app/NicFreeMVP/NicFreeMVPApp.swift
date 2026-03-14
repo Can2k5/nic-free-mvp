@@ -7,12 +7,13 @@ struct NicFreeMVPApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if appState.onboardingCompleted {
+                if appState.hasCompletedOnboarding {
                     RootTabView()
                 } else {
                     OnboardingView()
                 }
             }
+            .id(appState.hasCompletedOnboarding)
             .environmentObject(appState)
         }
     }

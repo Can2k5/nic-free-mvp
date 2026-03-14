@@ -174,10 +174,11 @@ struct DailyCheckin: Identifiable, Codable {
     }
 }
 
+@MainActor
 final class AppState: ObservableObject {
     @Published var activeRescueSessionID = UUID()
 
-    @Published var onboardingCompleted: Bool { didSet { persist() } }
+    @Published private var onboardingCompleted: Bool { didSet { persist() } }
     @Published var onboardingGoals: [String] { didSet { persist() } }
     @Published var onboardingTriggers: [String] { didSet { persist() } }
     @Published var quitDate: Date { didSet { persist() } }
@@ -200,6 +201,11 @@ final class AppState: ObservableObject {
         self.slipEvents = Self.load([SlipEvent].self, for: .slipEvents) ?? []
         self.quitReasons = Self.load([String].self, for: .quitReasons) ?? []
         self.dailyCheckins = Self.load([DailyCheckin].self, for: .dailyCheckins) ?? []
+    }
+
+    var hasCompletedOnboarding: Bool {
+        get { onboardingCompleted }
+        set { onboardingCompleted = newValue }
     }
 
     var cravingsDefeated: Int {
@@ -307,6 +313,12 @@ final class AppState: ObservableObject {
         } else {
             dailyCheckins.insert(DailyCheckin(date: today, cravingLevel: level), at: 0)
         }
+    }
+
+    func resetOnboardingForDebug() {
+        hasCompletedOnboarding = false
+        onboardingGoals = []
+        onboardingTriggers = []
     }
 
     private var weekEvents: [CravingEvent] {

@@ -101,6 +101,7 @@ struct SettingsView: View {
                                 }
                             }
                         }
+
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
@@ -109,6 +110,43 @@ struct SettingsView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
         }
+#if DEBUG
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 0) {
+                CardSection(fill: AnyShapeStyle(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.98), Color(red: 0.95, green: 0.95, blue: 0.93)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Debug")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Color.ink)
+
+                        Text("Reset onboarding to test the first-run flow again. Your cravings, slips, and check-ins stay untouched.")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.secondaryText)
+                            .lineSpacing(4)
+
+                        Button {
+                            appState.resetOnboardingForDebug()
+                        } label: {
+                            Text("Reset onboarding")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .background(Color.appBackgroundBottom.opacity(0.94))
+            }
+        }
+#endif
     }
 }
 

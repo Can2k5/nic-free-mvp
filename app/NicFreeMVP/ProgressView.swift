@@ -161,7 +161,6 @@ private struct MilestoneRow: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(milestone.isComplete ? Color.greenBadge : Color.pendingBadge)
                     .frame(width: 48, height: 48)
-
                 Image(systemName: milestone.isComplete ? "checkmark" : "sparkles")
                     .font(.headline.weight(.bold))
                     .foregroundStyle(milestone.isComplete ? Color.greenBadgeText : Color.pendingBadgeText)
@@ -171,14 +170,12 @@ private struct MilestoneRow: View {
                 Text(milestone.title)
                     .font(.headline)
                     .foregroundStyle(Color.ink)
-
                 Text(milestone.progressText)
                     .font(.footnote)
                     .foregroundStyle(Color.secondaryText)
             }
 
             Spacer()
-
             Text(milestone.isComplete ? "Done" : "Next")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(milestone.isComplete ? Color.greenBadgeText : Color.pendingBadgeText)
@@ -196,7 +193,6 @@ private struct MilestoneRow: View {
 private struct InsightRow: View {
     let title: String
     let value: String
-
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
