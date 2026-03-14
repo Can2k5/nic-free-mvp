@@ -5,6 +5,7 @@ struct RootTabView: View {
         case home
         case rescue
         case progress
+        case settings
     }
 
     @State private var selectedTab: Tab = .home
@@ -17,7 +18,7 @@ struct RootTabView: View {
                 }
                 .tag(Tab.home)
 
-            CravingRescueView()
+            CravingRescueView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Rescue", systemImage: "wind")
                 }
@@ -28,6 +29,12 @@ struct RootTabView: View {
                     Label("Progress", systemImage: "chart.bar")
                 }
                 .tag(Tab.progress)
+
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "slider.horizontal.3")
+                }
+                .tag(Tab.settings)
         }
         .tint(Color.ink)
         .toolbarBackground(Color.white.opacity(0.95), for: .tabBar)

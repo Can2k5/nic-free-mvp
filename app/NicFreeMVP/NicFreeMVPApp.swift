@@ -6,8 +6,14 @@ struct NicFreeMVPApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
-                .environmentObject(appState)
+            Group {
+                if appState.onboardingCompleted {
+                    RootTabView()
+                } else {
+                    OnboardingView()
+                }
+            }
+            .environmentObject(appState)
         }
     }
 }

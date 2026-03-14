@@ -40,6 +40,56 @@ struct ProgressView: View {
 
                         CardSection {
                             VStack(alignment: .leading, spacing: 18) {
+                                Text("Insights")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(Color.ink)
+
+                                InsightRow(
+                                    title: "Most common trigger",
+                                    value: appState.mostCommonTriggerTitle
+                                )
+                                InsightRow(
+                                    title: "Cravings this week",
+                                    value: "\(appState.cravingsThisWeek)"
+                                )
+                                InsightRow(
+                                    title: "Total cravings survived",
+                                    value: "\(appState.totalCravingsSurvived)"
+                                )
+                                InsightRow(
+                                    title: "Most common time of craving",
+                                    value: appState.mostCommonTimeOfCravingTitle
+                                )
+                                InsightRow(
+                                    title: "Average intensity this week",
+                                    value: appState.averageCravingIntensityThisWeekText
+                                )
+                            }
+                        }
+
+                        CardSection {
+                            VStack(alignment: .leading, spacing: 18) {
+                                Text("This Week")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(Color.ink)
+
+                                InsightRow(
+                                    title: "Cravings survived this week",
+                                    value: appState.weeklyCravingsSurvivedText
+                                )
+                                InsightRow(
+                                    title: "Strongest trigger this week",
+                                    value: appState.strongestTriggerThisWeekText
+                                )
+                                InsightRow(
+                                    title: "Average craving intensity",
+                                    value: appState.weeklyAverageIntensityText
+                                )
+                            }
+                        }
+
+                        CardSection {
+                            VStack(alignment: .leading, spacing: 18) {
                                 HStack {
                                     Text("Milestones")
                                         .font(.title3.weight(.semibold))
@@ -140,6 +190,26 @@ private struct MilestoneRow: View {
         .padding(16)
         .background(Color.white.opacity(0.7))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+private struct InsightRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(Color.secondaryText)
+
+            Spacer()
+
+            Text(value)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(Color.ink)
+        }
+        .padding(.vertical, 2)
     }
 }
 
