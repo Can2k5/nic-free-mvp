@@ -315,6 +315,17 @@ final class AppState: ObservableObject {
         }
     }
 
+    func resetProgress() {
+        quitDate = Calendar.current.startOfDay(for: .now)
+        cravingEvents = []
+        slipEvents = []
+        dailyCheckins = []
+    }
+
+    func clearCravingHistory() {
+        cravingEvents = []
+    }
+
     func resetOnboardingForDebug() {
         hasCompletedOnboarding = false
         onboardingGoals = []

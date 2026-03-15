@@ -38,7 +38,7 @@ struct RootTabView: View {
                 }
                 .tag(Tab.home)
 
-            CravingRescueView(selectedTab: $selectedTab)
+            RescueOptionsView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Rescue", systemImage: "wind")
                 }

@@ -1,0 +1,505 @@
+import SwiftUI
+
+struct CalmDownView: View {
+    private enum Phase {
+        case content
+        case success
+    }
+
+    @Binding var selectedTab: RootTabView.Tab
+    @Environment(\.dismiss) private var dismiss
+    @State private var phase: Phase = .content
+    @State private var currentStep = 0
+
+    private let prompts = [
+        "Unclench your jaw",
+        "Drop your shoulders",
+        "Inhale slowly",
+        "Exhale longer"
+    ]
+
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 22) {
+                    if phase == .content {
+                        ScreenHeader(
+                            eyebrow: "Calm Down",
+                            title: "Let your body settle first.",
+                            subtitle: "You do not need to solve the craving right now. First, reduce the intensity."
+                        )
+
+                        CardSection(fill: AnyShapeStyle(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.95), Color.mist.opacity(0.55)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )) {
+                            VStack(spacing: 18) {
+                                VStack(spacing: 12) {
+                                    Circle()
+                                        .fill(Color.white.opacity(0.5))
+                                        .frame(width: 84, height: 84)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color.white.opacity(0.7), lineWidth: 1)
+                                        )
+                                        .overlay(
+                                            Image(systemName: "wind")
+                                                .font(.system(size: 24, weight: .medium))
+                                                .foregroundStyle(Color.heroAccent)
+                                        )
+                                        .scaleEffect(currentStep >= 2 ? 1.04 : 1)
+                                        .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: currentStep >= 2)
+
+                                    Text(prompts[currentStep])
+                                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                                        .foregroundStyle(Color.ink)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                                .glassPanel(cornerRadius: 24, tint: Color.white, tintOpacity: 0.16, shadowOpacity: 0.05)
+
+                                VStack(spacing: 10) {
+                                    ForEach(Array(prompts.enumerated()), id: \.offset) { index, prompt in
+                                        HStack(spacing: 12) {
+                                            ZStack {
+                                                Circle()
+                                                    .fill(index <= currentStep ? Color.heroAccent.opacity(0.18) : Color.white.opacity(0.42))
+                                                    .frame(width: 28, height: 28)
+
+                                                Image(systemName: index < currentStep ? "checkmark" : "\(index + 1).circle.fill")
+                                                    .font(.footnote.weight(.semibold))
+                                                    .foregroundStyle(index <= currentStep ? Color.heroAccent : Color.secondaryText)
+                                            }
+
+                                            Text(prompt)
+                                                .font(.subheadline.weight(index == currentStep ? .semibold : .medium))
+                                                .foregroundStyle(index == currentStep ? Color.ink : Color.secondaryText)
+
+                                            Spacer()
+                                        }
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 14)
+                                        .background(index == currentStep ? Color.white.opacity(0.58) : Color.white.opacity(0.34))
+                                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    }
+                                }
+                            }
+                        }
+
+                        if currentStep < prompts.count - 1 {
+                            Button {
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                    currentStep += 1
+                                }
+                            } label: {
+                                Text("Next step")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 18)
+                            }
+                            .buttonStyle(PrimaryButtonStyle())
+                        } else {
+                            Button {
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                                    phase = .success
+                                }
+                            } label: {
+                                Text("I feel calmer")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 18)
+                            }
+                            .buttonStyle(PrimaryButtonStyle())
+                        }
+                    } else {
+                        rescueSuccessCard(
+                            eyebrow: "Calmer Now",
+                            symbol: "wind",
+                            title: "Good. Less intensity means more control.",
+                            subtitle: "The urge may still be here, but it has less power now."
+                        )
+
+                        Button {
+                            dismiss()
+                        } label: {
+                            Text("Back to Rescue Hub")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+
+                        NavigationLink {
+                            CravingRescueView(selectedTab: $selectedTab)
+                        } label: {
+                            Text("Log this craving")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.secondaryText)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 32)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .onDisappear {
+            currentStep = 0
+        }
+    }
+}
+
+struct RememberWhyView: View {
+    private enum Phase {
+        case content
+        case success
+    }
+
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    @State private var phase: Phase = .content
+
+    private var primaryReason: String? {
+        appState.quitReasons.first
+    }
+
+    private var supportingReasons: [String] {
+        Array(appState.quitReasons.dropFirst())
+    }
+
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 22) {
+                    if phase == .content {
+                        ScreenHeader(
+                            eyebrow: "Remember Why",
+                            title: "Come back to what matters.",
+                            subtitle: "You chose this for a reason. Let that reason speak louder than the urge."
+                        )
+
+                        CardSection(fill: AnyShapeStyle(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.96), Color.heroTop.opacity(0.78)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )) {
+                            VStack(alignment: .leading, spacing: 16) {
+                                if appState.quitReasons.isEmpty {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Text("No personal reasons saved yet.")
+                                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                                            .foregroundStyle(Color.ink)
+
+                                        Text("Add your reasons in onboarding or settings to make this rescue path more personal.")
+                                            .font(.subheadline)
+                                            .foregroundStyle(Color.secondaryText)
+                                            .lineSpacing(4)
+
+                                        Text("When you add one, it will show up here during craving moments.")
+                                            .font(.footnote.weight(.medium))
+                                            .foregroundStyle(Color.secondaryText)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(20)
+                                    .glassPanel(cornerRadius: 24, tint: Color.white, tintOpacity: 0.14, shadowOpacity: 0.04)
+                                } else {
+                                    if let primaryReason {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text("Hold onto this")
+                                                .font(.footnote.weight(.semibold))
+                                                .foregroundStyle(Color.heroAccent)
+                                                .textCase(.uppercase)
+                                                .tracking(1.2)
+
+                                            Text(primaryReason)
+                                                .font(.system(size: 38, weight: .bold, design: .rounded))
+                                                .foregroundStyle(Color.ink)
+                                                .fixedSize(horizontal: false, vertical: true)
+
+                                            Text("This matters more than what the craving is asking for right now.")
+                                                .font(.body.weight(.medium))
+                                                .foregroundStyle(Color.secondaryText)
+                                                .lineSpacing(4)
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(20)
+                                        .glassPanel(cornerRadius: 24, tint: Color.white, tintOpacity: 0.16, shadowOpacity: 0.05)
+                                    }
+
+                                    if !supportingReasons.isEmpty {
+                                        VStack(alignment: .leading, spacing: 12) {
+                                            Text("Also for")
+                                                .font(.footnote.weight(.semibold))
+                                                .foregroundStyle(Color.secondaryText)
+
+                                            ForEach(supportingReasons, id: \.self) { reason in
+                                                Text(reason)
+                                                    .font(.title3.weight(.semibold))
+                                                    .foregroundStyle(Color.ink)
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                                    .padding(.horizontal, 16)
+                                                    .padding(.vertical, 14)
+                                                    .background(Color.white.opacity(0.52))
+                                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Button {
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                                phase = .success
+                            }
+                        } label: {
+                            Text("Keep going")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                    } else {
+                        rescueSuccessCard(
+                            eyebrow: "Grounded Again",
+                            symbol: "heart.fill",
+                            title: "Your reason is still here.",
+                            subtitle: "This urge is temporary. What matters to you is bigger."
+                        )
+
+                        Button {
+                            dismiss()
+                        } label: {
+                            Text("Back to Rescue Hub")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 32)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct ChangeMomentView: View {
+    private enum Phase {
+        case choosing
+        case selected
+        case success
+    }
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var phase: Phase = .choosing
+    @State private var selectedAction: String?
+
+    private let actions = [
+        "Drink a glass of water",
+        "Leave the room",
+        "Walk for 2 minutes",
+        "Chew gum",
+        "Brush your teeth"
+    ]
+
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 22) {
+                    ScreenHeader(
+                        eyebrow: "Change The Moment",
+                        title: "Break the pattern.",
+                        subtitle: "Do one small thing that interrupts the craving loop."
+                    )
+
+                    if phase == .success {
+                        rescueSuccessCard(
+                            eyebrow: "Pattern Interrupted",
+                            symbol: "bolt.circle.fill",
+                            title: "You interrupted the loop.",
+                            subtitle: "One small action changed the moment."
+                        )
+
+                        Button {
+                            dismiss()
+                        } label: {
+                            Text("Back to Rescue Hub")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                    } else if phase == .selected, let selectedAction {
+                        CardSection(fill: AnyShapeStyle(Color.white.opacity(0.88))) {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Selected action")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(Color.heroAccent)
+                                    .textCase(.uppercase)
+                                    .tracking(1.2)
+
+                                Text(selectedAction)
+                                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                                    .foregroundStyle(Color.ink)
+
+                                Text(selectionSupportText)
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(Color.secondaryText)
+                                    .lineSpacing(4)
+                            }
+                        }
+
+                        Button {
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                                phase = .success
+                            }
+                        } label: {
+                            Text("Done")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                    } else {
+                        CardSection {
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(actions, id: \.self) { action in
+                                    Button {
+                                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                            selectedAction = action
+                                            phase = .selected
+                                        }
+                                    } label: {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: symbol(for: action))
+                                                .font(.headline)
+                                                .foregroundStyle(Color.heroAccent)
+                                                .frame(width: 34, height: 34)
+                                                .background(Color.accentWash)
+                                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                                            Text(action)
+                                                .font(.headline.weight(.semibold))
+                                                .foregroundStyle(Color.ink)
+                                                .multilineTextAlignment(.leading)
+
+                                            Spacer()
+
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption.weight(.bold))
+                                                .foregroundStyle(Color.secondaryText)
+                                        }
+                                        .padding(16)
+                                        .frame(maxWidth: .infinity)
+                                        .glassPanel(cornerRadius: 20, tint: Color.white, tintOpacity: 0.15, shadowOpacity: 0.04)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        Text("Pick the fastest move that changes what happens next.")
+                            .font(.footnote)
+                            .foregroundStyle(Color.secondaryText)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 32)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var selectionSupportText: String {
+        let messages = [
+            "Good. Change the pattern, not just the feeling.",
+            "Small actions can interrupt strong urges.",
+            "This moment does not have to follow the old script."
+        ]
+
+        guard let selectedAction else { return messages[0] }
+        let index = abs(selectedAction.hashValue) % messages.count
+        return messages[index]
+    }
+
+    private func symbol(for action: String) -> String {
+        switch action {
+        case "Drink a glass of water":
+            return "drop.fill"
+        case "Leave the room":
+            return "door.left.hand.open"
+        case "Walk for 2 minutes":
+            return "figure.walk"
+        case "Chew gum":
+            return "mouth"
+        case "Brush your teeth":
+            return "sparkles"
+        default:
+            return "bolt"
+        }
+    }
+}
+
+func rescueSuccessCard(eyebrow: String, symbol: String, title: String, subtitle: String) -> some View {
+    CardSection(fill: AnyShapeStyle(
+        LinearGradient(
+            colors: [Color.white.opacity(0.96), Color.heroTop.opacity(0.74)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    )) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: symbol)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.heroAccent)
+                    .frame(width: 42, height: 42)
+                    .background(Color.white.opacity(0.55))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                Spacer()
+            }
+
+            Text(eyebrow)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.heroAccent)
+                .textCase(.uppercase)
+                .tracking(1.2)
+
+            Text(title)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.ink)
+
+            Text(subtitle)
+                .font(.body)
+                .foregroundStyle(Color.secondaryText)
+                .lineSpacing(4)
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        ChangeMomentView()
+    }
+}
