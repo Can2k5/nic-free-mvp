@@ -10,11 +10,24 @@ struct RescueOptionsView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 18) {
-                        ScreenHeader(
-                            eyebrow: "Rescue",
-                            title: "What would help right now?",
-                            subtitle: "Choose the kind of support you need in this moment. Start with the strongest path if you just need to get through the wave."
-                        )
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Rescue")
+                                .font(.caption.weight(.semibold))
+                                .tracking(1.1)
+                                .textCase(.uppercase)
+                                .foregroundStyle(Color.secondaryText)
+
+                            ConversationalRevealText(
+                                text: "What would help right now?",
+                                startDelay: 0.2,
+                                chunkDelay: 1.05,
+                                chunking: .phrases,
+                                style: .headline
+                            )
+
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .softEntrance(delay: 0.02, distance: 14)
 
                         NavigationLink {
                             CravingRescueView(selectedTab: $selectedTab)
@@ -26,7 +39,8 @@ struct RescueOptionsView: View {
                                 isPrimary: true
                             )
                         }
-                        .buttonStyle(RescueCardButtonStyle())
+                        .buttonStyle(CardPressButtonStyle())
+                        .softEntrance(delay: 0.08, distance: 18, initialScale: 0.968)
 
                         VStack(spacing: 14) {
                             NavigationLink {
@@ -39,7 +53,7 @@ struct RescueOptionsView: View {
                                     isPrimary: false
                                 )
                             }
-                            .buttonStyle(RescueCardButtonStyle())
+                            .buttonStyle(CardPressButtonStyle())
 
                             NavigationLink {
                                 RememberWhyView()
@@ -51,7 +65,7 @@ struct RescueOptionsView: View {
                                     isPrimary: false
                                 )
                             }
-                            .buttonStyle(RescueCardButtonStyle())
+                            .buttonStyle(CardPressButtonStyle())
 
                             NavigationLink {
                                 ChangeMomentView()
@@ -63,14 +77,16 @@ struct RescueOptionsView: View {
                                     isPrimary: false
                                 )
                             }
-                            .buttonStyle(RescueCardButtonStyle())
+                            .buttonStyle(CardPressButtonStyle())
                         }
+                        .softEntrance(delay: 0.16, distance: 18, initialScale: 0.968)
 
                         Text("Use the support that fits the moment. You do not need the same kind of help every time.")
                             .font(.footnote)
                             .foregroundStyle(Color.secondaryText)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 12)
+                            .softEntrance(delay: 0.24, distance: 14, animation: MicroAnimation.supportiveReveal, initialScale: 0.976)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
@@ -79,14 +95,6 @@ struct RescueOptionsView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
         }
-    }
-}
-
-private struct RescueCardButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .animation(.spring(response: 0.22, dampingFraction: 0.78), value: configuration.isPressed)
     }
 }
 
@@ -100,8 +108,8 @@ private struct RescueOptionEntryCard: View {
         CardSection(fill: AnyShapeStyle(
             LinearGradient(
                 colors: isPrimary
-                    ? [Color.white.opacity(0.98), Color.heroTop.opacity(0.8)]
-                    : [Color.white.opacity(0.92), Color.white.opacity(0.76)],
+                    ? [Color.cardBackground.opacity(0.98), Color.heroTop.opacity(0.82)]
+                    : [Color.cardBackground.opacity(0.94), Color.surfaceElevated],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -112,7 +120,7 @@ private struct RescueOptionEntryCard: View {
                         .font(.system(size: isPrimary ? 20 : 18, weight: .semibold))
                         .foregroundStyle(Color.heroAccent)
                         .frame(width: isPrimary ? 52 : 44, height: isPrimary ? 52 : 44)
-                        .background(Color.white.opacity(isPrimary ? 0.62 : 0.45))
+                        .background(Color.surfaceElevated.opacity(isPrimary ? 0.95 : 0.82))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     Spacer()
@@ -152,7 +160,7 @@ private struct RescueOptionEntryCard: View {
                     .foregroundStyle(Color.ink.opacity(0.72))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(Color.white.opacity(0.52))
+                    .background(Color.surfaceMuted)
                     .clipShape(Capsule())
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

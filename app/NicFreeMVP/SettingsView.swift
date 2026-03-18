@@ -9,6 +9,8 @@ struct SettingsView: View {
     }
 
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var onboardingManager: OnboardingManager
+    @EnvironmentObject private var themeManager: ThemeManager
     @State private var newReason = ""
     @State private var pendingAction: DataAction?
 
@@ -24,6 +26,25 @@ struct SettingsView: View {
                             title: "Personalize your quit.",
                             subtitle: "Update your quit setup, keep your reasons close, and manage your data carefully."
                         )
+                        .softEntrance(delay: 0.02, distance: 10)
+
+                        CardSection {
+                            VStack(alignment: .leading, spacing: 18) {
+                                sectionLabel("Appearance")
+
+                                Text("Choose how the app should look across all screens.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.secondaryText)
+                                    .lineSpacing(4)
+
+                                VStack(spacing: 10) {
+                                    ForEach(ThemeMode.allCases) { mode in
+                                        appearanceOptionRow(mode)
+                                    }
+                                }
+                            }
+                        }
+                        .softEntrance(delay: 0.06, distance: 12)
 
                         CardSection {
                             VStack(alignment: .leading, spacing: 18) {
@@ -45,10 +66,19 @@ struct SettingsView: View {
                                     )
                                     .datePickerStyle(.graphical)
                                     .labelsHidden()
+                                    .tint(Color.buttonBottom)
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.inputBackground)
+                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                            .stroke(Color.border, lineWidth: 1)
+                                    )
                                 }
 
                                 Divider()
-                                    .overlay(Color.white.opacity(0.65))
+                                    .overlay(Color.divider)
 
                                 VStack(alignment: .leading, spacing: 12) {
                                     Text("Daily nicotine spend")
@@ -75,6 +105,7 @@ struct SettingsView: View {
                                 }
                             }
                         }
+                        .softEntrance(delay: 0.08, distance: 12)
 
                         CardSection {
                             VStack(alignment: .leading, spacing: 18) {
@@ -90,7 +121,7 @@ struct SettingsView: View {
                                         .textFieldStyle(.plain)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 14)
-                                        .background(Color.white.opacity(0.72))
+                                        .background(Color.inputBackground)
                                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                                     Button("Add") {
@@ -115,7 +146,7 @@ struct SettingsView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 14)
-                                    .background(Color.white.opacity(0.58))
+                                    .background(Color.surfaceMuted)
                                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 } else {
                                     ForEach(appState.quitReasons, id: \.self) { reason in
@@ -137,15 +168,17 @@ struct SettingsView: View {
                                             }
                                             .font(.footnote.weight(.semibold))
                                             .foregroundStyle(Color.secondaryText)
+                                            .buttonStyle(SecondaryButtonStyle())
                                         }
                                         .padding(.horizontal, 16)
                                         .padding(.vertical, 14)
-                                        .background(Color.white.opacity(0.62))
+                                        .background(Color.surfaceMuted)
                                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                     }
                                 }
                             }
                         }
+                        .softEntrance(delay: 0.14, distance: 12)
 
                         CardSection {
                             VStack(alignment: .leading, spacing: 18) {
@@ -170,20 +203,20 @@ struct SettingsView: View {
                                     pendingAction = .clearCravingHistory
                                 }
 
-#if DEBUG
                                 subtleActionRow(
                                     title: "Reset onboarding",
-                                    subtitle: "Show the first-run flow again for testing."
+                                    subtitle: "Start the onboarding flow again from the beginning."
                                 ) {
                                     appState.resetOnboardingForDebug()
+                                    onboardingManager.reset()
                                 }
-#endif
                             }
                         }
+                        .softEntrance(delay: 0.2, distance: 12)
 
                         CardSection(fill: AnyShapeStyle(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.96), Color(red: 0.95, green: 0.97, blue: 0.95)],
+                                colors: [Color.cardBackground.opacity(0.96), Color.mist.opacity(0.32)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -203,6 +236,7 @@ struct SettingsView: View {
                                 infoLinkRow("Terms")
                             }
                         }
+                        .softEntrance(delay: 0.26, distance: 12)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
@@ -240,6 +274,51 @@ struct SettingsView: View {
 
     private var addReasonDisabled: Bool {
         newReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || appState.quitReasons.count >= 3
+    }
+
+    private func appearanceOptionRow(_ mode: ThemeMode) -> some View {
+        Button {
+            withAnimation(MicroAnimation.selection) {
+                themeManager.mode = mode
+            }
+        } label: {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(mode.title)
+                        .font(.headline)
+                        .foregroundStyle(Color.ink)
+
+                    Text(mode.subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(Color.secondaryText)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .fill(themeManager.mode == mode ? Color.buttonBottom : Color.surfaceMuted)
+                        .frame(width: 26, height: 26)
+
+                    if themeManager.mode == mode {
+                        Image(systemName: "checkmark")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.white)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 15)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(themeManager.mode == mode ? Color.buttonBottom.opacity(0.08) : Color.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(themeManager.mode == mode ? Color.buttonBottom.opacity(0.22) : Color.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(CardPressButtonStyle())
     }
 
     private var appVersionText: String {
@@ -300,10 +379,10 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
-            .background(Color.white.opacity(0.62))
+            .background(Color.surfaceMuted)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CardPressButtonStyle())
     }
 
     private func infoRow(title: String, value: String) -> some View {
@@ -339,4 +418,6 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(AppState())
+        .environmentObject(OnboardingManager())
+        .environmentObject(ThemeManager())
 }

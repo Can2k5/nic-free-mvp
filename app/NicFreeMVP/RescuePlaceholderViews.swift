@@ -30,10 +30,11 @@ struct CalmDownView: View {
                             title: "Let your body settle first.",
                             subtitle: "You do not need to solve the craving right now. First, reduce the intensity."
                         )
+                        .softEntrance(delay: 0.02, distance: 10)
 
                         CardSection(fill: AnyShapeStyle(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.95), Color.mist.opacity(0.55)],
+                                colors: [Color.cardBackground.opacity(0.98), Color.mist.opacity(0.42)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -41,11 +42,11 @@ struct CalmDownView: View {
                             VStack(spacing: 18) {
                                 VStack(spacing: 12) {
                                     Circle()
-                                        .fill(Color.white.opacity(0.5))
+                                        .fill(Color.surfaceElevated)
                                         .frame(width: 84, height: 84)
                                         .overlay(
                                             Circle()
-                                                .stroke(Color.white.opacity(0.7), lineWidth: 1)
+                                                .stroke(Color.border, lineWidth: 1)
                                         )
                                         .overlay(
                                             Image(systemName: "wind")
@@ -62,14 +63,14 @@ struct CalmDownView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
-                                .glassPanel(cornerRadius: 24, tint: Color.white, tintOpacity: 0.16, shadowOpacity: 0.05)
+                                .glassPanel(cornerRadius: 24, tint: Color.cardBackground, tintOpacity: 0.16, shadowOpacity: 0.05)
 
                                 VStack(spacing: 10) {
                                     ForEach(Array(prompts.enumerated()), id: \.offset) { index, prompt in
                                         HStack(spacing: 12) {
                                             ZStack {
                                                 Circle()
-                                                    .fill(index <= currentStep ? Color.heroAccent.opacity(0.18) : Color.white.opacity(0.42))
+                                                    .fill(index <= currentStep ? Color.heroAccent.opacity(0.18) : Color.surfaceMuted)
                                                     .frame(width: 28, height: 28)
 
                                                 Image(systemName: index < currentStep ? "checkmark" : "\(index + 1).circle.fill")
@@ -85,12 +86,13 @@ struct CalmDownView: View {
                                         }
                                         .padding(.horizontal, 16)
                                         .padding(.vertical, 14)
-                                        .background(index == currentStep ? Color.white.opacity(0.58) : Color.white.opacity(0.34))
+                                        .background(index == currentStep ? Color.surfaceElevated : Color.surfaceMuted)
                                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                     }
                                 }
                             }
                         }
+                        .softEntrance(delay: 0.1, distance: 12)
 
                         if currentStep < prompts.count - 1 {
                             Button {
@@ -124,6 +126,7 @@ struct CalmDownView: View {
                             title: "Good. Less intensity means more control.",
                             subtitle: "The urge may still be here, but it has less power now."
                         )
+                        .softEntrance(delay: 0.04, distance: 10, animation: MicroAnimation.success, initialScale: 0.985)
 
                         Button {
                             dismiss()
@@ -134,6 +137,7 @@ struct CalmDownView: View {
                                 .padding(.vertical, 18)
                         }
                         .buttonStyle(PrimaryButtonStyle())
+                        .softEntrance(delay: 0.1, distance: 10)
 
                         NavigationLink {
                             CravingRescueView(selectedTab: $selectedTab)
@@ -142,9 +146,11 @@ struct CalmDownView: View {
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.secondaryText)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(SecondaryButtonStyle())
+                        .softEntrance(delay: 0.14, distance: 10)
                     }
                 }
+                .animation(MicroAnimation.success, value: phase)
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
                 .padding(.bottom, 32)
@@ -187,10 +193,11 @@ struct RememberWhyView: View {
                             title: "Come back to what matters.",
                             subtitle: "You chose this for a reason. Let that reason speak louder than the urge."
                         )
+                        .softEntrance(delay: 0.02, distance: 10)
 
                         CardSection(fill: AnyShapeStyle(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.96), Color.heroTop.opacity(0.78)],
+                                colors: [Color.cardBackground.opacity(0.98), Color.heroTop.opacity(0.78)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -213,7 +220,7 @@ struct RememberWhyView: View {
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(20)
-                                    .glassPanel(cornerRadius: 24, tint: Color.white, tintOpacity: 0.14, shadowOpacity: 0.04)
+                                    .glassPanel(cornerRadius: 24, tint: Color.cardBackground, tintOpacity: 0.14, shadowOpacity: 0.04)
                                 } else {
                                     if let primaryReason {
                                         VStack(alignment: .leading, spacing: 8) {
@@ -235,7 +242,7 @@ struct RememberWhyView: View {
                                         }
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .padding(20)
-                                        .glassPanel(cornerRadius: 24, tint: Color.white, tintOpacity: 0.16, shadowOpacity: 0.05)
+                                        .glassPanel(cornerRadius: 24, tint: Color.cardBackground, tintOpacity: 0.16, shadowOpacity: 0.05)
                                     }
 
                                     if !supportingReasons.isEmpty {
@@ -251,7 +258,7 @@ struct RememberWhyView: View {
                                                     .frame(maxWidth: .infinity, alignment: .leading)
                                                     .padding(.horizontal, 16)
                                                     .padding(.vertical, 14)
-                                                    .background(Color.white.opacity(0.52))
+                                                    .background(Color.surfaceMuted)
                                                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                             }
                                         }
@@ -259,6 +266,7 @@ struct RememberWhyView: View {
                                 }
                             }
                         }
+                        .softEntrance(delay: 0.1, distance: 12)
 
                         Button {
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
@@ -278,6 +286,7 @@ struct RememberWhyView: View {
                             title: "Your reason is still here.",
                             subtitle: "This urge is temporary. What matters to you is bigger."
                         )
+                        .softEntrance(delay: 0.04, distance: 10, animation: MicroAnimation.success, initialScale: 0.985)
 
                         Button {
                             dismiss()
@@ -288,8 +297,10 @@ struct RememberWhyView: View {
                                 .padding(.vertical, 18)
                         }
                         .buttonStyle(PrimaryButtonStyle())
+                        .softEntrance(delay: 0.1, distance: 10)
                     }
                 }
+                .animation(MicroAnimation.success, value: phase)
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
                 .padding(.bottom, 32)
@@ -329,6 +340,7 @@ struct ChangeMomentView: View {
                         title: "Break the pattern.",
                         subtitle: "Do one small thing that interrupts the craving loop."
                     )
+                    .softEntrance(delay: 0.02, distance: 10)
 
                     if phase == .success {
                         rescueSuccessCard(
@@ -337,6 +349,7 @@ struct ChangeMomentView: View {
                             title: "You interrupted the loop.",
                             subtitle: "One small action changed the moment."
                         )
+                        .softEntrance(delay: 0.06, distance: 10, animation: MicroAnimation.success, initialScale: 0.985)
 
                         Button {
                             dismiss()
@@ -347,8 +360,9 @@ struct ChangeMomentView: View {
                                 .padding(.vertical, 18)
                         }
                         .buttonStyle(PrimaryButtonStyle())
+                        .softEntrance(delay: 0.12, distance: 10)
                     } else if phase == .selected, let selectedAction {
-                        CardSection(fill: AnyShapeStyle(Color.white.opacity(0.88))) {
+                        CardSection(fill: AnyShapeStyle(Color.surfaceElevated)) {
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Selected action")
                                     .font(.footnote.weight(.semibold))
@@ -366,6 +380,7 @@ struct ChangeMomentView: View {
                                     .lineSpacing(4)
                             }
                         }
+                        .softEntrance(delay: 0.06, distance: 12)
 
                         Button {
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
@@ -378,6 +393,7 @@ struct ChangeMomentView: View {
                                 .padding(.vertical, 18)
                         }
                         .buttonStyle(PrimaryButtonStyle())
+                        .softEntrance(delay: 0.12, distance: 10)
                     } else {
                         CardSection {
                             VStack(alignment: .leading, spacing: 12) {
@@ -409,20 +425,23 @@ struct ChangeMomentView: View {
                                         }
                                         .padding(16)
                                         .frame(maxWidth: .infinity)
-                                        .glassPanel(cornerRadius: 20, tint: Color.white, tintOpacity: 0.15, shadowOpacity: 0.04)
+                                        .glassPanel(cornerRadius: 20, tint: Color.cardBackground, tintOpacity: 0.15, shadowOpacity: 0.04)
                                     }
-                                    .buttonStyle(.plain)
+                                    .buttonStyle(CardPressButtonStyle())
                                 }
                             }
                         }
+                        .softEntrance(delay: 0.08, distance: 12)
 
                         Text("Pick the fastest move that changes what happens next.")
                             .font(.footnote)
                             .foregroundStyle(Color.secondaryText)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 16)
+                            .softEntrance(delay: 0.16, distance: 10, animation: MicroAnimation.supportiveReveal)
                     }
                 }
+                .animation(MicroAnimation.success, value: phase)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 32)
             }
@@ -463,7 +482,7 @@ struct ChangeMomentView: View {
 func rescueSuccessCard(eyebrow: String, symbol: String, title: String, subtitle: String) -> some View {
     CardSection(fill: AnyShapeStyle(
         LinearGradient(
-            colors: [Color.white.opacity(0.96), Color.heroTop.opacity(0.74)],
+            colors: [Color.cardBackground.opacity(0.98), Color.heroTop.opacity(0.74)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -474,7 +493,7 @@ func rescueSuccessCard(eyebrow: String, symbol: String, title: String, subtitle:
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Color.heroAccent)
                     .frame(width: 42, height: 42)
-                    .background(Color.white.opacity(0.55))
+                    .background(Color.surfaceElevated)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                 Spacer()
@@ -486,16 +505,40 @@ func rescueSuccessCard(eyebrow: String, symbol: String, title: String, subtitle:
                 .textCase(.uppercase)
                 .tracking(1.2)
 
-            Text(title)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(Color.ink)
+            ConversationalRevealText(
+                text: title,
+                startDelay: 0.12,
+                chunkDelay: 0.9,
+                chunking: .phrases,
+                style: .init(
+                    font: .system(size: 30, weight: .bold, design: .rounded),
+                    finalColor: Color.ink,
+                    mutedColor: Color.secondaryText,
+                    lineSpacing: 4,
+                    initialOpacity: 0.1,
+                    animation: .easeOut(duration: 0.5)
+                )
+            )
+            .softEntrance(delay: 0.02, distance: 10, animation: MicroAnimation.success, initialScale: 0.99)
 
-            Text(subtitle)
-                .font(.body)
-                .foregroundStyle(Color.secondaryText)
-                .lineSpacing(4)
+            ConversationalRevealText(
+                text: subtitle,
+                startDelay: 0.72,
+                chunkDelay: 1.0,
+                chunking: .sentences,
+                style: .init(
+                    font: .body,
+                    finalColor: Color.secondaryText,
+                    mutedColor: Color.secondaryText,
+                    lineSpacing: 4,
+                    initialOpacity: 0.12,
+                    animation: .easeOut(duration: 0.48)
+                )
+            )
+            .softEntrance(delay: 0.08, distance: 10, animation: MicroAnimation.supportiveReveal)
         }
     }
+    .transition(.calmSuccess)
 }
 
 #Preview {

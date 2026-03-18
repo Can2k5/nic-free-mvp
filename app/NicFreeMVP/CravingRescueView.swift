@@ -33,12 +33,19 @@ struct CravingRescueView: View {
                 VStack(spacing: 24) {
                     if phase == .timer {
                         timerContent
+                            .transition(.calmFlow)
+                            .zIndex(1)
                     } else if phase == .success {
                         successContent
+                            .transition(.calmSuccess)
+                            .zIndex(2)
                     } else {
                         reflectionContent
+                            .transition(.calmFlow)
+                            .zIndex(1)
                     }
                 }
+                .animation(MicroAnimation.flow, value: phase)
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
                 .padding(.bottom, 32)
@@ -65,17 +72,44 @@ struct CravingRescueView: View {
 
     private var timerContent: some View {
         VStack(spacing: 24) {
-            ScreenHeader(
-                eyebrow: "Wait It Out",
-                title: "Do not decide right now.",
-                subtitle: "Give the urge a moment. Most cravings pass if you do not act immediately."
-            )
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Wait It Out")
+                    .font(.caption.weight(.semibold))
+                    .tracking(1.1)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.secondaryText)
+
+                ConversationalRevealText(
+                    text: "Do not decide right now.",
+                    startDelay: 0.18,
+                    chunkDelay: 0.95,
+                    chunking: .phrases,
+                    style: .headline
+                )
+
+                ConversationalRevealText(
+                    text: "Give the urge a moment. Most cravings pass if you do not act immediately.",
+                    startDelay: 0.95,
+                    chunkDelay: 1.05,
+                    chunking: .sentences,
+                    style: .init(
+                        font: .subheadline,
+                        finalColor: Color.secondaryText,
+                        mutedColor: Color.secondaryText,
+                        lineSpacing: 3,
+                        initialOpacity: 0.12,
+                        animation: .easeOut(duration: 0.5)
+                    )
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .softEntrance(delay: 0.02, distance: 10)
 
             CardSection(fill: AnyShapeStyle(
                 LinearGradient(
                     colors: [
-                        Color.white.opacity(0.95),
-                        Color(red: 0.90, green: 0.94, blue: 0.95)
+                        Color.cardBackground.opacity(0.98),
+                        Color.cardSecondary
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -90,7 +124,7 @@ struct CravingRescueView: View {
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color.white.opacity(0.42),
+                                                Color.surfaceElevated.opacity(0.62),
                                                 Color.mist.opacity(0.18)
                                             ],
                                             startPoint: .topLeading,
@@ -102,7 +136,7 @@ struct CravingRescueView: View {
                             .shadow(color: Color.shadowColor.opacity(0.08), radius: 25, x: 0, y: 14)
                             .overlay(
                                 Circle()
-                                    .stroke(Color.white.opacity(0.55), lineWidth: 1)
+                                    .stroke(Color.border, lineWidth: 1)
                             )
 
                         Circle()
@@ -112,7 +146,7 @@ struct CravingRescueView: View {
                         Circle()
                             .trim(from: 0.06, to: 0.32)
                             .stroke(
-                                Color.white.opacity(timerActive ? 0.88 : 0.42),
+                                Color.cardBackground.opacity(timerActive ? 0.92 : 0.42),
                                 style: StrokeStyle(lineWidth: 7, lineCap: .round)
                             )
                             .frame(width: 210, height: 210)
@@ -145,10 +179,21 @@ struct CravingRescueView: View {
                     )
 
                     VStack(spacing: 8) {
-                        Text("The urge feels urgent. It is still temporary.")
-                            .font(.body.weight(.medium))
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(Color.ink)
+                        ConversationalRevealText(
+                            text: "The urge feels urgent. It is still temporary.",
+                            startDelay: 0.35,
+                            chunkDelay: 0.95,
+                            chunking: .sentences,
+                            style: .init(
+                                font: .body.weight(.medium),
+                                finalColor: Color.ink,
+                                mutedColor: Color.secondaryText,
+                                lineSpacing: 4,
+                                initialOpacity: 0.1,
+                                animation: .easeOut(duration: 0.48)
+                            )
+                        )
+                        .multilineTextAlignment(.center)
 
                         Text("This is a wave. Let it crest and pass.")
                             .font(.footnote)
@@ -158,6 +203,7 @@ struct CravingRescueView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
+            .softEntrance(delay: 0.1, distance: 12)
 
             if !sessionStarted {
                 primaryActionButton(title: "Start the 90 seconds", systemImage: "play.fill") {
@@ -166,14 +212,17 @@ struct CravingRescueView: View {
                 }
 
                 helperText("You are not deciding forever. You are only giving this urge one short window to pass.")
+                    .softEntrance(delay: 0.18, distance: 10, animation: MicroAnimation.supportiveReveal)
             } else {
                 primaryActionButton(
                     title: "I made it",
                     systemImage: secondsRemaining > 0 ? "moon.zzz.fill" : "checkmark.circle.fill",
                     isEnabled: secondsRemaining == 0
                 ) {
-                    phase = .success
-                    timerActive = false
+                    withAnimation(MicroAnimation.success) {
+                        phase = .success
+                        timerActive = false
+                    }
                 }
 
                 helperText(
@@ -181,6 +230,7 @@ struct CravingRescueView: View {
                         ? "Stay with the countdown. Every second you do not act weakens the pattern."
                         : "You made it through the wave."
                 )
+                .softEntrance(delay: 0.1, distance: 10, animation: MicroAnimation.supportiveReveal)
             }
         }
     }
@@ -193,11 +243,16 @@ struct CravingRescueView: View {
                 title: "You got through that wave.",
                 subtitle: "That urge did not decide for you."
             )
+            .softEntrance(delay: 0.03, distance: 14, animation: MicroAnimation.success, initialScale: 0.97)
 
             primaryActionButton(title: "Continue to reflection", systemImage: "square.and.pencil") {
-                phase = .reflection
+                withAnimation(MicroAnimation.flow) {
+                    phase = .reflection
+                }
             }
+            .softEntrance(delay: 0.08, distance: 12, animation: MicroAnimation.success, initialScale: 0.985)
         }
+        .transition(.calmSuccess)
     }
 
     private var reflectionContent: some View {
@@ -207,6 +262,7 @@ struct CravingRescueView: View {
                 title: "You got through it.",
                 subtitle: "Log this moment so we can understand your patterns."
             )
+            .softEntrance(delay: 0.02, distance: 10)
 
             CardSection {
                 VStack(alignment: .leading, spacing: 16) {
@@ -226,14 +282,15 @@ struct CravingRescueView: View {
                                     .frame(height: 50)
                                     .background(
                                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .fill(selectedIntensity == value ? Color.buttonBottom : Color.white.opacity(0.75))
+                                            .fill(selectedIntensity == value ? Color.buttonBottom : Color.surfaceElevated)
                                     )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(SelectableButtonStyle(isSelected: selectedIntensity == value))
                         }
                     }
                 }
             }
+            .softEntrance(delay: 0.1, distance: 12)
 
             CardSection {
                 VStack(alignment: .leading, spacing: 16) {
@@ -254,14 +311,15 @@ struct CravingRescueView: View {
                                     .padding(.horizontal, 12)
                                     .background(
                                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                            .fill(selectedTrigger == trigger ? Color.buttonBottom : Color.white.opacity(0.75))
+                                            .fill(selectedTrigger == trigger ? Color.buttonBottom : Color.surfaceElevated)
                                     )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(SelectableButtonStyle(isSelected: selectedTrigger == trigger))
                         }
                     }
                 }
             }
+            .softEntrance(delay: 0.16, distance: 12)
 
             primaryActionButton(title: "Save craving", systemImage: "checkmark.circle.fill", isEnabled: selectedTrigger != nil) {
                 guard let selectedTrigger else { return }
@@ -270,11 +328,19 @@ struct CravingRescueView: View {
                     trigger: selectedTrigger,
                     succeeded: true
                 )
-                resetFlow()
-                selectedTab = .home
+                appState.showRewardToast(
+                    title: "Great.",
+                    message: "You resisted a craving."
+                )
+                withAnimation(MicroAnimation.success) {
+                    resetFlow()
+                    selectedTab = .home
+                }
             }
+            .softEntrance(delay: 0.22, distance: 10)
 
             helperText("This adds the event to your local progress history and updates your survived cravings.")
+                .softEntrance(delay: 0.26, distance: 10, animation: MicroAnimation.supportiveReveal)
         }
     }
 

@@ -34,8 +34,12 @@ struct SlipRecoveryFlowView: View {
                                 titleForOption: \.title
                             ) { value in
                                 selectedType = value
-                                step = .trigger
+                                withAnimation(MicroAnimation.flow) {
+                                    step = .trigger
+                                }
                             }
+                            .transition(.calmFlow)
+                            .zIndex(1)
 
                         case .trigger:
                             selectionStep(
@@ -47,8 +51,12 @@ struct SlipRecoveryFlowView: View {
                                 titleForOption: \.title
                             ) { value in
                                 selectedTrigger = value
-                                step = .recovery
+                                withAnimation(MicroAnimation.flow) {
+                                    step = .recovery
+                                }
                             }
+                            .transition(.calmFlow)
+                            .zIndex(1)
 
                         case .recovery:
                             selectionStep(
@@ -62,11 +70,16 @@ struct SlipRecoveryFlowView: View {
                                 selectedRecoveryMode = value
                                 saveSlipAndContinue()
                             }
+                            .transition(.calmFlow)
+                            .zIndex(1)
 
                         case .support:
                             supportStep
+                                .transition(.calmSuccess)
+                                .zIndex(2)
                         }
                     }
+                    .animation(MicroAnimation.flow, value: step)
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
                     .padding(.bottom, 28)
@@ -100,6 +113,7 @@ struct SlipRecoveryFlowView: View {
                 title: title,
                 subtitle: subtitle
             )
+            .softEntrance(delay: 0.02, distance: 10)
 
             CardSection {
                 VStack(spacing: 12) {
@@ -121,35 +135,75 @@ struct SlipRecoveryFlowView: View {
                             .padding(.vertical, 18)
                             .background(
                                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(isSelected ? Color.buttonBottom : Color.white.opacity(0.7))
+                                    .fill(isSelected ? Color.buttonBottom : Color.surfaceElevated)
                             )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(SelectableButtonStyle(isSelected: isSelected))
                     }
                 }
             }
+            .softEntrance(delay: 0.1, distance: 12)
         }
+        .transition(.calmSuccess)
     }
 
     private var supportStep: some View {
         VStack(spacing: 18) {
-            ScreenHeader(
-                eyebrow: "Keep Going",
-                title: "You did not lose everything.",
-                subtitle: supportiveMessage
-            )
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Keep Going")
+                    .font(.caption.weight(.semibold))
+                    .tracking(1.1)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.secondaryText)
+
+                ConversationalRevealText(
+                    text: "You did not lose everything.",
+                    startDelay: 0.08,
+                    chunkDelay: 0.5,
+                    chunking: .phrases,
+                    style: .headline
+                )
+
+                ConversationalRevealText(
+                    text: supportiveMessage,
+                    startDelay: 0.42,
+                    chunkDelay: 0.72,
+                    chunking: .sentences,
+                    style: .init(
+                        font: .subheadline,
+                        finalColor: Color.secondaryText,
+                        mutedColor: Color.secondaryText,
+                        lineSpacing: 3,
+                        initialOpacity: 0.12,
+                        animation: .easeOut(duration: 0.5)
+                    )
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .softEntrance(delay: 0.04, distance: 10)
 
             CardSection(fill: AnyShapeStyle(
                 LinearGradient(
-                    colors: [Color.white.opacity(0.96), Color(red: 0.95, green: 0.97, blue: 0.95)],
+                    colors: [Color.cardBackground.opacity(0.98), Color.cardSecondary],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("One hard moment does not erase your progress.")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Color.ink)
+                    ConversationalRevealText(
+                        text: "One hard moment does not erase your progress.",
+                        startDelay: 0.9,
+                        chunkDelay: 0.6,
+                        chunking: .phrases,
+                        style: .init(
+                            font: .title3.weight(.semibold),
+                            finalColor: Color.ink,
+                            mutedColor: Color.secondaryText,
+                            lineSpacing: 4,
+                            initialOpacity: 0.1,
+                            animation: .easeOut(duration: 0.48)
+                        )
+                    )
 
                     Text("What matters now is the next caring choice you make for yourself.")
                         .font(.subheadline)
@@ -157,6 +211,7 @@ struct SlipRecoveryFlowView: View {
                         .lineSpacing(4)
                 }
             }
+            .softEntrance(delay: 0.08, distance: 16, animation: MicroAnimation.success, initialScale: 0.97)
 
             Button {
                 dismiss()
@@ -167,7 +222,9 @@ struct SlipRecoveryFlowView: View {
                     .padding(.vertical, 18)
             }
             .buttonStyle(PrimaryButtonStyle())
+            .softEntrance(delay: 0.14, distance: 12, animation: MicroAnimation.success, initialScale: 0.985)
         }
+        .transition(.calmSuccess)
     }
 
     private var supportiveMessage: String {
@@ -196,7 +253,9 @@ struct SlipRecoveryFlowView: View {
             recoveryMode: selectedRecoveryMode
         )
 
-        step = .support
+        withAnimation(MicroAnimation.success) {
+            step = .support
+        }
     }
 }
 
