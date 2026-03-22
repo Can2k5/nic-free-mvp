@@ -1,4 +1,4 @@
-# NicFree MVP Scope
+# Ayo MVP Scope
 
 ## Goal
 Build a very small mobile MVP for a nicotine quitting app that helps users survive cravings and see simple progress.

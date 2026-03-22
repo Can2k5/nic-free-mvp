@@ -2,7 +2,7 @@ import SwiftUI
 import RevenueCat
 
 @main
-struct NicFreeMVPApp: App {
+struct AyoMVPApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var onboardingManager = OnboardingManager()
     @StateObject private var themeManager = ThemeManager()

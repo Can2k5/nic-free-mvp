@@ -444,6 +444,34 @@ struct AppBackground: View {
     }
 }
 
+struct OnboardingBackgroundView: View {
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color.white,
+                        Color(red: 0.99, green: 0.97, blue: 1.0),
+                        Color(red: 0.95, green: 0.89, blue: 1.0).opacity(0.92),
+                        Color(red: 0.86, green: 0.75, blue: 0.99).opacity(0.9)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                Circle()
+                    .fill(Color.white.opacity(0.45))
+                    .frame(width: width * 0.9, height: width * 0.9)
+                    .blur(radius: 36)
+                    .offset(x: width * 0.18, y: -90)
+            }
+            .ignoresSafeArea()
+        }
+    }
+}
+
 struct ScreenHeader: View {
     let eyebrow: String
     let title: String
@@ -475,6 +503,65 @@ struct ScreenHeader: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
+
+struct OnboardingHeaderView: View {
+    let currentStep: Int
+    let totalSteps: Int
+    let title: String
+    let subtitle: String
+
+    private let purple = Color(red: 0.36, green: 0.12, blue: 0.64)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("\(currentStep)/\(totalSteps)")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(purple)
+
+                GeometryReader { barProxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.72))
+
+                        Capsule()
+                            .fill(purple)
+                            .frame(width: max(barProxy.size.width * (CGFloat(currentStep) / CGFloat(max(totalSteps, 1))), 48))
+                    }
+                }
+                .frame(height: 6)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: subtitle.isEmpty ? 0 : OnboardingHeaderMetrics.titleToSubtitleSpacing) {
+                Text(title)
+                    .font(.system(size: 31, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.black)
+                    .tracking(-1.2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color.black.opacity(0.92))
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, OnboardingHeaderMetrics.progressToTitleSpacing)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+enum OnboardingHeaderMetrics {
+    static let topSafeAreaOffset: CGFloat = -18
+    static let progressToTitleSpacing: CGFloat = 14
+    static let titleToSubtitleSpacing: CGFloat = 4
+    static let headerToContentSpacing: CGFloat = 14
 }
 
 struct PaywallBenefit: Identifiable, Hashable {
@@ -1324,10 +1411,10 @@ struct OnboardingPrimaryButton: View {
             action()
         } label: {
             Text(title)
-                .font(.headline)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundStyle(isEnabled ? Color.white : Color.white.opacity(0.72))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
+                .frame(height: OnboardingActionBarMetrics.buttonHeight)
         }
         .disabled(!isEnabled)
         .buttonStyle(OnboardingPrimaryButtonStyle(isEnabled: isEnabled))
@@ -1348,13 +1435,68 @@ struct OnboardingSecondaryButton: View {
             action()
         } label: {
             Text(title)
-                .font(.headline)
-                .foregroundStyle(isEnabled ? Color.ink : Color.secondaryText.opacity(0.72))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundStyle(isEnabled ? Color(red: 0.36, green: 0.12, blue: 0.64) : Color.secondaryText.opacity(0.72))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
+                .frame(height: OnboardingActionBarMetrics.buttonHeight)
         }
         .disabled(!isEnabled)
         .buttonStyle(OnboardingSecondaryButtonStyle(isEnabled: isEnabled))
+    }
+}
+
+enum OnboardingActionBarMetrics {
+    static let horizontalPadding: CGFloat = 24
+    static let spacing: CGFloat = 14
+    static let buttonHeight: CGFloat = 62
+    static let cornerRadius: CGFloat = 24
+    static let bottomInset: CGFloat = 0
+    static let topInset: CGFloat = 0
+    static let reservedHeight: CGFloat = buttonHeight + topInset + bottomInset
+}
+
+struct OnboardingActionRow: View {
+    var showsBackButton: Bool = true
+    var showsPrimaryButton: Bool = true
+    var backTitle: String = "back"
+    var continueTitle: String = "continue"
+    var primaryButtonEnabled: Bool = true
+    var width: CGFloat? = nil
+    var horizontalPadding: CGFloat = 0
+    var bottomPadding: CGFloat = 0
+    var spacing: CGFloat = OnboardingActionBarMetrics.spacing
+    var onBack: (() -> Void)? = nil
+    var onContinue: (() -> Void)? = nil
+
+    var body: some View {
+        Group {
+            if let width {
+                row.frame(width: width)
+            } else {
+                row.frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, horizontalPadding)
+        .padding(.bottom, bottomPadding)
+    }
+
+    private var row: some View {
+        HStack(spacing: spacing) {
+            if showsBackButton, let onBack {
+                OnboardingSecondaryButton(
+                    title: backTitle,
+                    action: onBack
+                )
+            }
+
+            if showsPrimaryButton, let onContinue {
+                OnboardingPrimaryButton(
+                    title: continueTitle,
+                    isEnabled: primaryButtonEnabled,
+                    action: onContinue
+                )
+            }
+        }
     }
 }
 
@@ -1364,17 +1506,17 @@ private struct OnboardingPrimaryButtonStyle: SwiftUI.ButtonStyle {
     func makeBody(configuration: SwiftUI.ButtonStyleConfiguration) -> some View {
         configuration.label
             .background {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: OnboardingActionBarMetrics.cornerRadius, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: isEnabled
                                 ? [
-                                    Color(red: 0.62, green: 0.45, blue: 0.99),
-                                    Color(red: 0.46, green: 0.25, blue: 0.90)
+                                    Color(red: 0.43, green: 0.16, blue: 0.75),
+                                    Color(red: 0.36, green: 0.12, blue: 0.64)
                                 ]
                                 : [
-                                    Color(red: 0.62, green: 0.45, blue: 0.99).opacity(0.4),
-                                    Color(red: 0.46, green: 0.25, blue: 0.90).opacity(0.4)
+                                    Color(red: 0.75, green: 0.66, blue: 0.95),
+                                    Color(red: 0.69, green: 0.58, blue: 0.92)
                                 ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -1382,18 +1524,18 @@ private struct OnboardingPrimaryButtonStyle: SwiftUI.ButtonStyle {
                     )
             }
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Color.white.opacity(isEnabled ? 0.22 : 0.1), lineWidth: 1)
+                RoundedRectangle(cornerRadius: OnboardingActionBarMetrics.cornerRadius, style: .continuous)
+                    .stroke(Color.white.opacity(isEnabled ? 0.06 : 0), lineWidth: 1)
             )
             .shadow(
                 color: isEnabled
-                    ? Color(red: 0.46, green: 0.25, blue: 0.90).opacity(configuration.isPressed ? 0.12 : 0.28)
+                    ? Color.black.opacity(configuration.isPressed ? 0.04 : 0.08)
                     : .clear,
-                radius: configuration.isPressed ? 10 : 20,
+                radius: configuration.isPressed ? 8 : 12,
                 x: 0,
-                y: configuration.isPressed ? 4 : 12
+                y: configuration.isPressed ? 4 : 7
             )
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .animation(Animation.spring(duration: 0.12, bounce: 0.2), value: configuration.isPressed)
     }
 }
@@ -1404,7 +1546,7 @@ private struct OnboardingSecondaryButtonStyle: SwiftUI.ButtonStyle {
     func makeBody(configuration: SwiftUI.ButtonStyleConfiguration) -> some View {
         configuration.label
             .background {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: OnboardingActionBarMetrics.cornerRadius, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: isEnabled
@@ -1422,25 +1564,25 @@ private struct OnboardingSecondaryButtonStyle: SwiftUI.ButtonStyle {
                     )
             }
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: OnboardingActionBarMetrics.cornerRadius, style: .continuous)
                     .stroke(
                         isEnabled
-                            ? Color.border.opacity(0.95)
+                            ? Color.white.opacity(0.72)
                             : Color.border.opacity(0.5),
-                        lineWidth: 1.15
+                        lineWidth: 1
                     )
             )
             .shadow(
                 color: isEnabled
-                    ? Color.shadowColor.opacity(configuration.isPressed ? 0.06 : 0.12)
+                    ? Color.black.opacity(configuration.isPressed ? 0.04 : 0.08)
                     : .clear,
-                radius: configuration.isPressed ? 8 : 16,
+                radius: configuration.isPressed ? 8 : 12,
                 x: 0,
-                y: configuration.isPressed ? 3 : 9
+                y: configuration.isPressed ? 4 : 7
             )
-            .brightness(configuration.isPressed ? -0.02 : 0)
-            .opacity(isEnabled ? (configuration.isPressed ? 0.97 : 1) : 0.66)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .brightness(configuration.isPressed ? -0.01 : 0)
+            .opacity(isEnabled ? (configuration.isPressed ? 0.98 : 1) : 0.66)
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .animation(Animation.spring(duration: 0.12, bounce: 0.2), value: configuration.isPressed)
     }
 }
@@ -1539,6 +1681,58 @@ struct SelectionCard: View {
     }
 }
 
+struct FloatingIllustrationOptionCard<Illustration: View>: View {
+    let title: String
+    var isSelected: Bool
+    var height: CGFloat = 96
+    var cornerRadius: CGFloat = 30
+    var titleFont: Font = .system(size: 22, weight: .medium, design: .rounded)
+    var selectedTitleFont: Font = .system(size: 22, weight: .bold, design: .rounded)
+    var selectedTitleColor: Color = .black
+    var unselectedTitleColor: Color = Color.black.opacity(0.62)
+    var titleAlignment: Alignment = .leading
+    var titleLeadingPadding: CGFloat = 28
+    var titleTrailingPadding: CGFloat = 28
+    var illustrationAlignment: Alignment = .bottomTrailing
+    var illustrationOffset: CGSize = .zero
+    let action: () -> Void
+    @ViewBuilder let illustration: Illustration
+
+    var body: some View {
+        let purple = Color(red: 0.36, green: 0.12, blue: 0.64)
+
+        Button(action: action) {
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.white.opacity(0.985))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .stroke(
+                                isSelected ? purple : Color.clear,
+                                lineWidth: isSelected ? 4.5 : 0
+                            )
+                    )
+                    .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 7)
+
+                Text(title)
+                    .font(isSelected ? selectedTitleFont : titleFont)
+                    .foregroundStyle(isSelected ? selectedTitleColor : unselectedTitleColor)
+                    .multilineTextAlignment(titleAlignment == .trailing ? .trailing : .leading)
+                    .frame(maxWidth: .infinity, alignment: titleAlignment)
+                    .padding(.leading, titleLeadingPadding)
+                    .padding(.trailing, titleTrailingPadding)
+            }
+            .overlay(alignment: illustrationAlignment) {
+                illustration
+                    .offset(illustrationOffset)
+                    .allowsHitTesting(false)
+            }
+            .frame(height: height)
+        }
+        .buttonStyle(OnboardingSelectionCardPressStyle())
+    }
+}
+
 private struct OnboardingSelectionCardPressStyle: SwiftUI.ButtonStyle {
     func makeBody(configuration: SwiftUI.ButtonStyleConfiguration) -> some View {
         configuration.label
@@ -1558,74 +1752,88 @@ struct OnboardingScreenLayout<Content: View>: View {
     let subtitle: String
     let primaryButtonTitle: String
     let primaryButtonEnabled: Bool
+    var showsProgressIndicator: Bool = true
+    var showsProgressStepLabel: Bool = true
+    var showsHeader: Bool = true
+    var contentUsesFullWidth: Bool = false
+    var usesScrollView: Bool = true
+    var contentIgnoresSafeArea: Bool = false
     var showsPrimaryButton: Bool = true
     var showsBackButton: Bool = true
     var onBack: (() -> Void)? = nil
     let onContinue: () -> Void
     @ViewBuilder let content: Content
 
+    @ViewBuilder
     var body: some View {
-        GeometryReader { proxy in
-            let horizontalInset = max(16, min(24, proxy.size.width * 0.05))
+        let layout = GeometryReader { proxy in
+            let horizontalInset: CGFloat = OnboardingActionBarMetrics.horizontalPadding
             let contentWidth = min(max(proxy.size.width - (horizontalInset * 2), 0), 520)
-            let floatingBottomInset = max(proxy.safeAreaInsets.bottom, 0) + 22
+            let layoutInset = contentUsesFullWidth ? 0 : horizontalInset
+            let scrollContentWidth = contentUsesFullWidth ? proxy.size.width : contentWidth
+            let floatingBottomInset: CGFloat = 0
             let hasActionBar = showsBackButton || showsPrimaryButton
-            let actionAreaHeight: CGFloat = hasActionBar ? (showsBackButton && showsPrimaryButton ? 76 : 64) : 0
+            let actionAreaHeight: CGFloat = hasActionBar ? OnboardingActionBarMetrics.reservedHeight : 0
+            let headerTopInset = proxy.safeAreaInsets.top + OnboardingHeaderMetrics.topSafeAreaOffset
+            let contentStack = VStack(spacing: 22) {
+                content
+            }
+            .frame(width: scrollContentWidth, alignment: .leading)
+            .padding(.top, contentUsesFullWidth ? 0 : 0)
+            .padding(.bottom, actionAreaHeight + floatingBottomInset + 20)
 
-            ZStack(alignment: .bottom) {
-                VStack(spacing: 22) {
-                    OnboardingProgressIndicator(
+            VStack(spacing: OnboardingHeaderMetrics.headerToContentSpacing) {
+                if showsProgressIndicator || showsHeader {
+                    OnboardingHeaderView(
                         currentStep: currentStep,
                         totalSteps: totalSteps,
-                        stepLabel: stepLabel
+                        title: showsHeader ? title : "",
+                        subtitle: showsHeader ? subtitle : ""
                     )
                     .frame(width: contentWidth)
+                    .padding(.top, headerTopInset)
+                }
 
-                    ScreenHeader(
-                        eyebrow: eyebrow,
-                        title: title,
-                        subtitle: subtitle
-                    )
-                    .frame(width: contentWidth, alignment: .leading)
-
+                if usesScrollView {
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 22) {
-                            content
-                        }
-                        .frame(width: contentWidth, alignment: .leading)
-                        .padding(.top, 6)
-                        .padding(.bottom, actionAreaHeight + floatingBottomInset + 20)
+                        contentStack
                     }
                     .frame(maxWidth: .infinity)
+                } else {
+                    contentStack
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.horizontal, horizontalInset)
-
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.horizontal, layoutInset)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 if hasActionBar {
-                    HStack(spacing: 12) {
-                        if showsBackButton, let onBack {
-                            OnboardingSecondaryButton(
-                                title: "Back",
-                                action: onBack
-                            )
-                        }
-
-                        if showsPrimaryButton {
-                            OnboardingPrimaryButton(
-                                title: primaryButtonTitle,
-                                isEnabled: primaryButtonEnabled,
-                                action: onContinue
-                            )
-                        }
-                    }
-                    .frame(width: contentWidth)
-                    .padding(.horizontal, horizontalInset)
-                    .padding(.bottom, floatingBottomInset)
+                    OnboardingActionRow(
+                        showsBackButton: showsBackButton,
+                        showsPrimaryButton: showsPrimaryButton,
+                        backTitle: "back",
+                        continueTitle: primaryButtonTitle.lowercased(),
+                        primaryButtonEnabled: primaryButtonEnabled,
+                        width: contentWidth,
+                        horizontalPadding: horizontalInset,
+                        bottomPadding: floatingBottomInset,
+                        spacing: OnboardingActionBarMetrics.spacing,
+                        onBack: onBack,
+                        onContinue: onContinue
+                    )
+                    .padding(.top, OnboardingActionBarMetrics.topInset)
                 }
             }
         }
-        .background(AppBackground())
+        .background(OnboardingBackgroundView())
         .ignoresSafeArea(.keyboard, edges: .bottom)
+
+        if contentIgnoresSafeArea {
+            layout
+                .ignoresSafeArea(.container, edges: .all)
+        } else {
+            layout
+        }
     }
 }
 

@@ -226,30 +226,78 @@ struct DailyCheckin: Identifiable, Codable {
 }
 
 enum OnboardingStep: Int, CaseIterable, Codable, Identifiable {
-    case welcome
-    case name
-    case consumption
-    case goal
-    case pace
-    case motivation
-    case concerns
-    case planGeneration
-    case planReveal
-    case planReady
-    case value
-    case savingsReminder
-    case paywall
-    case exitOffer
+    case hook = 0
+    case recognition = 1
+    case system = 2
+    case breakLoopHold = 3
+    case costSlider = 5
+    case future = 7
+    case nameInput = 8
+    case startPoint = 9
+    case triggerQuestion = 10
+    case profileQuestions = 11
+    case loading = 12
+    case planReady = 13
+    case paywall = 14
+    case exitOffer = 15
 
     var id: Int { rawValue }
 
-    var position: Int { rawValue + 1 }
+    static let journeyOrder: [OnboardingStep] = [
+        .hook,
+        .recognition,
+        .system,
+        .breakLoopHold,
+        .costSlider,
+        .future,
+        .nameInput,
+        .startPoint,
+        .triggerQuestion,
+        .profileQuestions,
+        .loading,
+        .planReady,
+        .paywall,
+        .exitOffer
+    ]
+
+    static let progressOrder: [OnboardingStep] = [
+        .hook,
+        .recognition,
+        .system,
+        .breakLoopHold,
+        .costSlider,
+        .future,
+        .nameInput,
+        .startPoint,
+        .triggerQuestion,
+        .profileQuestions,
+        .loading,
+        .planReady,
+        .paywall
+    ]
+
+    static var progressTotal: Int { progressOrder.count }
+
+    var position: Int {
+        if let index = Self.progressOrder.firstIndex(of: self) {
+            return index + 1
+        }
+        return Self.progressTotal
+    }
 }
 
 struct OnboardingState: Codable {
-    var currentStep: OnboardingStep = .welcome
+    var currentStep: OnboardingStep = .hook
     var name: String = ""
     var weeklySpending: Double = 35
+    var recognitionResponse: String?
+    var recognitionResponses: [String] = []
+    var systemResponse: String?
+    var breakLoopCommitment: String?
+    var futureVision: String = ""
+    var startPoint: String?
+    var triggerQuestion: String?
+    var profileQuestions: [String] = []
     var goal: String?
     var pace: String?
     var motivation: String = ""
@@ -266,6 +314,9 @@ final class OnboardingManager: ObservableObject {
 
     init() {
         self.state = Self.load() ?? OnboardingState()
+        if state.recognitionResponses.isEmpty, let recognitionResponse = state.recognitionResponse {
+            state.recognitionResponses = [recognitionResponse]
+        }
     }
 
     var currentStep: OnboardingStep {
@@ -273,12 +324,16 @@ final class OnboardingManager: ObservableObject {
     }
 
     func nextStep() {
-        guard let next = OnboardingStep(rawValue: currentStep.rawValue + 1) else { return }
+        guard let index = OnboardingStep.journeyOrder.firstIndex(of: currentStep),
+              index + 1 < OnboardingStep.journeyOrder.count else { return }
+        let next = OnboardingStep.journeyOrder[index + 1]
         goToStep(next)
     }
 
     func previousStep() {
-        guard let previous = OnboardingStep(rawValue: currentStep.rawValue - 1) else { return }
+        guard let index = OnboardingStep.journeyOrder.firstIndex(of: currentStep),
+              index > 0 else { return }
+        let previous = OnboardingStep.journeyOrder[index - 1]
         goToStep(previous)
     }
 
@@ -572,17 +627,33 @@ final class AppState: ObservableObject {
 
     func applyOnboarding(_ onboarding: OnboardingState) {
         profileName = onboarding.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        onboardingGoals = onboarding.goal.map { [$0] } ?? []
-        onboardingTriggers = onboarding.concerns
+        onboardingGoals = onboarding.startPoint.map { [$0] } ?? onboarding.goal.map { [$0] } ?? []
+
+        var triggers: [String] = []
+        if let triggerQuestion = onboarding.triggerQuestion?.trimmingCharacters(in: .whitespacesAndNewlines), !triggerQuestion.isEmpty {
+            triggers.append(triggerQuestion)
+        }
+        triggers.append(contentsOf: onboarding.profileQuestions)
+        if triggers.isEmpty {
+            triggers = onboarding.concerns
+        }
+        onboardingTriggers = triggers
         dailySpend = max(onboarding.weeklySpending / 7, 0)
 
         var reasons: [String] = []
-        if let goal = onboarding.goal?.trimmingCharacters(in: .whitespacesAndNewlines), !goal.isEmpty {
-            reasons.append(goal)
+        if let startPoint = onboarding.startPoint?.trimmingCharacters(in: .whitespacesAndNewlines), !startPoint.isEmpty {
+            reasons.append(startPoint)
+        }
+        let futureVision = onboarding.futureVision.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !futureVision.isEmpty, !reasons.contains(futureVision) {
+            reasons.append(futureVision)
         }
         let motivation = onboarding.motivation.trimmingCharacters(in: .whitespacesAndNewlines)
         if !motivation.isEmpty, !reasons.contains(motivation) {
             reasons.append(motivation)
+        }
+        if let commitment = onboarding.breakLoopCommitment?.trimmingCharacters(in: .whitespacesAndNewlines), !commitment.isEmpty, !reasons.contains(commitment) {
+            reasons.append(commitment)
         }
         quitReasons = Array(reasons.prefix(3))
 

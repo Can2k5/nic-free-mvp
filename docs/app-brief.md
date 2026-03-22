@@ -1,42 +1,40 @@
-# App Brief
+# Ayo — Product Brief
 
-## App Name
-NicFree MVP
+## Overview
+Ayo is a nicotine-free companion that helps users quit and stay quit by making their recovery visible and supporting them through setbacks.
 
-## Core Idea
-A very small mobile app that helps users during nicotine cravings and shows basic progress.
+## Core Experience
+Ayo is built around three pillars:
 
-## Main User Flow
-1. User opens the app
-2. User sees nicotine-free progress on the home screen
-3. User taps "I have a craving"
-4. User completes a 60 second support timer
-5. User taps "I made it"
-6. The app increases the cravings defeated count
-7. User can view progress and milestones
+1. Progress & Recovery (Primary)
+Users see how their body and mind recover over time.
 
-## Required Screens
-- Home
-- Craving Rescue
-- Progress
+2. Daily Accountability
+Simple daily check-ins create consistency and structure.
 
-## Technical Requirements
-- React Native with Expo
-- frontend only
-- use local state
-- no backend
-- no authentication
-- no external APIs
+3. Rescue (Secondary)
+Support tools are available when needed, but not the main focus.
 
-## UI Direction
-- calm
-- modern
-- soft spacing
-- rounded cards
-- clean typography
-- simple tab bar
-- dark or light theme is acceptable, but keep it elegant
+## Monetization
+Ayo uses a hybrid monetization model:
 
-## Important
-This is only a mini MVP to preview in the iOS simulator.
-Keep the implementation small and simple.
+- Users can experience the product during onboarding and initial interaction
+- After the first meaningful interaction, the app is locked
+- Users must start a 3-day reset (trial) to continue
+
+## Pricing
+- Monthly: 7.99€
+- Yearly: 39.99€ (Best Value)
+
+## Positioning
+Ayo is not just a tracker.
+
+It is a system that helps users:
+- stay consistent
+- recover from slips
+- build a nicotine-free identity
+
+## Design Principles
+- Calm urgency
+- Emotional but clean
+- Progress over pressure
