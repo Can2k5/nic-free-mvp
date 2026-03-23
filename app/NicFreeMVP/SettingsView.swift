@@ -212,7 +212,7 @@ struct SettingsView: View {
     private var resetSection: some View {
         InsightCard(
             title: "Reset options",
-            subtitle: "These actions change saved progress and history.",
+            subtitle: "These actions affect what the app remembers.",
             icon: "arrow.counterclockwise"
         ) {
             VStack(spacing: AppSpacing.md) {
@@ -259,7 +259,7 @@ struct SettingsView: View {
     private var appInformationSection: some View {
         InsightCard(
             title: "App information",
-            subtitle: "Version details and legal pages.",
+            subtitle: "A few practical details for the app.",
             icon: "info.circle"
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -747,7 +747,7 @@ private struct MotivationReasonCard: View {
     var body: some View {
         HStack(alignment: .center, spacing: AppSpacing.md) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Saved reason")
+                Text("Saved for later")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.secondaryText)
                     .textCase(.uppercase)

@@ -1020,7 +1020,7 @@ struct PaywallView: View {
             switch await subscriptionManager.purchase(selectedPackage) {
             case .success:
                 appState.showRewardToast(
-                    title: "Ayo Pro unlocked.",
+                    title: "You are all set.",
                     message: "Your subscription is active now."
                 )
                 onPurchaseSuccess?()
@@ -1038,8 +1038,8 @@ struct PaywallView: View {
             switch await subscriptionManager.restorePurchases() {
             case .restored:
                 appState.showRewardToast(
-                    title: "Purchases restored.",
-                    message: "Ayo Pro is active on this device."
+                    title: "You are all set.",
+                    message: "Your subscription is active on this device."
                 )
                 dismissAnimated()
             case .noActiveSubscription, .failed:

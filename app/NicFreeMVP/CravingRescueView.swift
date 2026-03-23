@@ -238,14 +238,14 @@ struct CravingRescueView: View {
     private var successContent: some View {
         VStack(spacing: 22) {
             rescueSuccessCard(
-                eyebrow: "Urge Passed",
+                eyebrow: "That Counts",
                 symbol: "checkmark.circle.fill",
-                title: "You got through that wave.",
-                subtitle: "This moment passed without taking over."
+                title: "You stayed with it.",
+                subtitle: "That moment eased without taking over."
             )
             .softEntrance(delay: 0.03, distance: 14, animation: MicroAnimation.success, initialScale: 0.97)
 
-            primaryActionButton(title: "Log this moment", systemImage: "square.and.pencil") {
+            primaryActionButton(title: "Let this moment count", systemImage: "square.and.pencil") {
                 withAnimation(MicroAnimation.flow) {
                     phase = .reflection
                 }
@@ -259,8 +259,8 @@ struct CravingRescueView: View {
         VStack(spacing: 18) {
             ScreenHeader(
                 eyebrow: "After The Urge",
-                title: "You got through it.",
-                subtitle: "A quick note now helps your patterns become clearer later."
+                title: "You stayed with it.",
+                subtitle: "A quick note now helps this feel clearer later."
             )
             .softEntrance(delay: 0.02, distance: 10)
 
@@ -321,16 +321,17 @@ struct CravingRescueView: View {
             }
             .softEntrance(delay: 0.16, distance: 12)
 
-            primaryActionButton(title: "Save this moment", systemImage: "checkmark.circle.fill", isEnabled: selectedTrigger != nil) {
+            primaryActionButton(title: "Save and keep going", systemImage: "checkmark.circle.fill", isEnabled: selectedTrigger != nil) {
                 guard let selectedTrigger else { return }
                 appState.saveCravingEvent(
                     intensity: selectedIntensity,
                     trigger: selectedTrigger,
                     succeeded: true
                 )
+                OnboardingHaptics.success()
                 appState.showRewardToast(
-                    title: "You got through it.",
-                    message: "This moment is now part of your progress."
+                    title: "You stayed with it.",
+                    message: "That moment now counts toward the progress you are building."
                 )
                 withAnimation(MicroAnimation.success) {
                     resetFlow()

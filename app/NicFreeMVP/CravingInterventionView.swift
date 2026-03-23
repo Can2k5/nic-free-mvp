@@ -234,16 +234,16 @@ struct CravingInterventionView: View {
                         .font(.system(size: 42, weight: .semibold))
                         .foregroundStyle(Color.buttonBottom)
 
-                    Text("You got through it.")
+                    Text("You stayed with it.")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.ink)
 
-                    Text("The wave passed without taking over.")
+                    Text("The wave eased without taking over.")
                         .font(.title3.weight(.medium))
                         .foregroundStyle(Color.secondaryText)
                         .multilineTextAlignment(.center)
 
-                    Text("One more urge outlasted")
+                    Text("That counts")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.buttonBottom)
                         .padding(.horizontal, 16)
@@ -343,7 +343,7 @@ struct CravingInterventionView: View {
     private func completeIntervention() {
         hasCompletedIntervention = true
         appState.saveCravingEvent(intensity: 2, trigger: .other, succeeded: true)
-        appState.showRewardToast(title: "You got through it.", message: "One more hard moment is behind you.")
+        appState.showRewardToast(title: "You stayed with it.", message: "That breath-by-breath pause helped this moment soften.")
         OnboardingHaptics.success()
 
         withAnimation(MicroAnimation.success) {

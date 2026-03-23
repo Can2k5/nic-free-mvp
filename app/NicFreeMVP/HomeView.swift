@@ -12,11 +12,11 @@ struct HomeView: View {
         var title: String {
             switch self {
             case .delayFirstPuff:
-                return "Delay first puff"
+                return "Wait five more minutes"
             case .drinkWater:
-                return "Drink water"
+                return "Drink some water"
             case .deepBreaths:
-                return "Take 3 deep breaths"
+                return "Take 3 slow breaths"
             case .walkTwoMinutes:
                 return "Walk for 2 minutes"
             }
@@ -25,13 +25,26 @@ struct HomeView: View {
         var helperText: String {
             switch self {
             case .delayFirstPuff:
-                return "Wait 5 minutes before smoking"
+                return "A little space can soften the urge"
             case .drinkWater:
-                return "Reset the urge with one glass"
+                return "A small reset for your body"
             case .deepBreaths:
-                return "Slow your body down first"
+                return "Let your body settle first"
             case .walkTwoMinutes:
-                return "Break the pattern with movement"
+                return "A change in motion can change the moment"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .delayFirstPuff:
+                return "timer"
+            case .drinkWater:
+                return "drop.fill"
+            case .deepBreaths:
+                return "wind"
+            case .walkTwoMinutes:
+                return "figure.walk"
             }
         }
     }
@@ -47,15 +60,34 @@ struct HomeView: View {
         var title: String {
             switch self {
             case .first24Hours:
-                return "First 24 hours"
+                return "First full day"
             case .firstCravingResisted:
-                return "First craving resisted"
+                return "First urge outlasted"
             case .threeDays:
-                return "3 days nicotine free"
+                return "3 steady days"
             case .sevenDays:
-                return "7 days nicotine free"
+                return "One steady week"
             }
         }
+
+        var compactTitle: String {
+            switch self {
+            case .first24Hours:
+                return "24h"
+            case .firstCravingResisted:
+                return "First urge"
+            case .threeDays:
+                return "3 days"
+            case .sevenDays:
+                return "1 week"
+            }
+        }
+    }
+
+    struct CheckinDay: Identifiable {
+        let id: Date
+        let date: Date
+        let level: DailyCravingLevel?
     }
 
     @EnvironmentObject private var appState: AppState
@@ -63,9 +95,7 @@ struct HomeView: View {
     @State private var showingSlipFlow = false
     @State private var showingCravingView = false
     @State private var showingPaywallTest = false
-    @State private var cravingCardBreathing = false
     @State private var completedTodayActions: Set<TodayAction> = []
-    @State private var showingInsightDetails = false
     @State private var animatedMilestones: Set<Milestone> = []
     @State private var seenUnlockedMilestones: Set<Milestone> = []
 
@@ -75,173 +105,31 @@ struct HomeView: View {
                 AppBackground()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 22) {
-                        homeHeader
-                            .softEntrance(delay: 0.02, distance: 14)
+                    VStack(spacing: AppSpacing.section + 4) {
+                        homeHeroSummary
+                            .softEntrance(delay: 0.04, distance: 16, initialScale: 0.97)
+                            .padding(.bottom, AppSpacing.sm)
 
-                        progressCard
-                            .softEntrance(delay: 0.08, distance: 16, initialScale: 0.97)
+                        homeDailyCheckIn
+                            .softEntrance(delay: 0.11, distance: 16, initialScale: 0.98)
 
-                        cravingActionCard
-                            .softEntrance(delay: 0.14, distance: 16, initialScale: 0.97)
+                        homeTodayFocus
+                            .softEntrance(delay: 0.18, distance: 16, initialScale: 0.98)
 
-                        todayActionsSection
-                            .softEntrance(delay: 0.18, distance: 16, initialScale: 0.97)
-
-                        insightCard
-                            .softEntrance(delay: 0.2, distance: 16, initialScale: 0.97)
-
-                        milestonesSection
-                            .softEntrance(delay: 0.24, distance: 16, initialScale: 0.97)
-
-                        CardSection(fill: AnyShapeStyle(
-                            LinearGradient(
-                                colors: [Color.cardBackground.opacity(0.98), Color.cardSecondary],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )) {
-                            VStack(alignment: .leading, spacing: 16) {
-                                ConversationalRevealText(
-                                    text: "Keep going",
-                                    startDelay: 0.15,
-                                    chunkDelay: 0.95,
-                                    chunking: .phrases,
-                                    style: .init(
-                                        font: .title3.weight(.semibold),
-                                        finalColor: Color.ink,
-                                        mutedColor: Color.secondaryText,
-                                        lineSpacing: 4,
-                                        initialOpacity: 0.1,
-                                        animation: .easeOut(duration: 0.5)
-                                    )
-                                )
-
-                                ConversationalRevealText(
-                                    text: appState.dynamicMotivation,
-                                    startDelay: 0.8,
-                                    chunkDelay: 1.1,
-                                    chunking: .sentences,
-                                    style: .init(
-                                        font: .subheadline,
-                                        finalColor: Color.secondaryText,
-                                        mutedColor: Color.secondaryText,
-                                        lineSpacing: 4,
-                                        initialOpacity: 0.12,
-                                        animation: .easeOut(duration: 0.5)
-                                    )
-                                )
-
-                                if let reason = appState.highlightedQuitReason {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("Why this matters")
-                                            .font(.footnote.weight(.semibold))
-                                            .foregroundStyle(Color.heroAccent)
-                                            .textCase(.uppercase)
-                                            .tracking(1.1)
-
-                                        Text(reason)
-                                            .font(.body.weight(.semibold))
-                                            .foregroundStyle(Color.ink)
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 14)
-                                    .glassPanel(cornerRadius: 20, tint: Color.cardBackground, tintOpacity: 0.14, shadowOpacity: 0.04)
-                                } else {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("Make this more personal")
-                                            .font(.footnote.weight(.semibold))
-                                            .foregroundStyle(Color.heroAccent)
-                                            .textCase(.uppercase)
-                                            .tracking(1.1)
-
-                                        Text("Add a quit reason in Settings so the app can bring it back when cravings hit.")
-                                            .font(.subheadline)
-                                            .foregroundStyle(Color.secondaryText)
-                                            .lineSpacing(4)
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 14)
-                                    .glassPanel(cornerRadius: 20, tint: Color.cardBackground, tintOpacity: 0.12, shadowOpacity: 0.03)
-                                }
-
-                                if appState.cravingEvents.isEmpty {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("No cravings logged yet")
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(Color.ink)
-
-                                        Text("When you use Rescue and log a craving, your patterns and progress will start to show up here.")
-                                            .font(.footnote)
-                                            .foregroundStyle(Color.secondaryText)
-                                            .lineSpacing(3)
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 14)
-                                    .background(Color.surfaceMuted)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                }
-
-                                Button {
-                                    showingSlipFlow = true
-                                } label: {
-                                    Text("I slipped")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(Color.secondaryText)
-                                }
-                                .buttonStyle(SecondaryButtonStyle())
-
-                                Button {
-                                    showingPaywallTest = true
-                                } label: {
-                                    Text("Open Paywall")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(Color.secondaryText)
-                                }
-                                .buttonStyle(SecondaryButtonStyle())
-                            }
+                        if shouldShowRescueEntry {
+                            homeCravingQuickAction
+                                .softEntrance(delay: 0.24, distance: 16, initialScale: 0.98)
                         }
-                        .softEntrance(delay: 0.28, distance: 18, animation: MicroAnimation.supportiveReveal, initialScale: 0.968)
 
-                        CardSection {
-                            VStack(alignment: .leading, spacing: 14) {
-                                Text("Daily check-in")
-                                    .font(.title3.weight(.semibold))
-                                    .foregroundStyle(Color.ink)
+                        homeProgressSnapshot
+                            .softEntrance(delay: 0.29, distance: 16, initialScale: 0.98)
 
-                                Text("How strong are cravings today?")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.secondaryText)
-
-                                HStack(spacing: 10) {
-                                    ForEach(DailyCravingLevel.allCases) { level in
-                                        Button {
-                                            appState.saveDailyCheckin(level: level)
-                                        } label: {
-                                            Text(level.title)
-                                                .font(.subheadline.weight(.semibold))
-                                                .foregroundStyle(appState.latestCheckin?.cravingLevel == level ? Color.white : Color.ink)
-                                                .frame(maxWidth: .infinity)
-                                                .padding(.vertical, 14)
-                                                .background(
-                                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                        .fill(appState.latestCheckin?.cravingLevel == level ? Color.buttonBottom : Color.surfaceElevated)
-                                                )
-                                        }
-                                        .buttonStyle(SelectableButtonStyle(isSelected: appState.latestCheckin?.cravingLevel == level))
-                                    }
-                                }
-
-                                Text(latestCheckinText)
-                                    .font(.footnote)
-                                    .foregroundStyle(Color.secondaryText)
-                            }
-                        }
-                        .softEntrance(delay: 0.34, distance: 18, initialScale: 0.968)
+                        utilityFooter
+                            .softEntrance(delay: 0.34, distance: 12, initialScale: 0.99)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 18)
-                    .padding(.bottom, 32)
+                    .padding(.top, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.lg)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -257,13 +145,12 @@ struct HomeView: View {
                 paywallTestSheet
             }
             .onAppear {
-                cravingCardBreathing = true
                 syncMilestones()
             }
-            .onChange(of: appState.nicotineFreeDays) { _ in
+            .onChange(of: appState.nicotineFreeDays) {
                 syncMilestones()
             }
-            .onChange(of: appState.cravingsDefeated) { _ in
+            .onChange(of: appState.cravingsDefeated) {
                 syncMilestones()
             }
         }
@@ -280,247 +167,494 @@ struct HomeView: View {
 
     private var latestCheckinText: String {
         guard let latest = appState.latestCheckin else {
-            return "No check-in yet today. A quick check-in helps the app understand how cravings are showing up."
+            return "A quick check-in can help steady the day."
         }
 
-        return "Latest check-in: \(latest.cravingLevel.title)"
-    }
-
-    private var homeHeader: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Today")
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .foregroundStyle(Color.ink)
-
-            Text("Day \(max(appState.nicotineFreeDays, 1)) smoke free")
-                .font(.title3.weight(.medium))
-                .foregroundStyle(Color.ink.opacity(0.9))
-
-            Text(currentWeekday)
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(Color.secondaryText)
+        if Calendar.current.isDateInToday(latest.date) {
+            return checkinReflection(for: latest.cravingLevel)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 10)
+
+        return "Your last check-in felt \(latest.cravingLevel.title.lowercased())."
     }
 
-    private var progressCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 10) {
-                Text("🔥")
-                    .font(.title3)
+    private var emotionalAnchor: String {
+        if let reason = appState.highlightedQuitReason {
+            return reason
+        }
+        return appState.dynamicMotivation
+    }
 
-                Text("Streak")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(Color.ink)
-            }
-
-            Text("\(max(appState.nicotineFreeDays, 1)) days nicotine free")
-                .font(.title3.weight(.medium))
-                .foregroundStyle(Color.ink)
-
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Cravings resisted: \(appState.cravingsDefeated)")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.ink)
-                }
-
-                Spacer()
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Money saved: \(appState.moneySaved.formatted(.currency(code: currencyCode)))")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.ink)
-                }
+    private var selectedTodayFocus: TodayAction {
+        if let latest = appState.latestCheckin?.cravingLevel {
+            switch latest {
+            case .high:
+                return .deepBreaths
+            case .medium:
+                return .drinkWater
+            case .low:
+                return .walkTwoMinutes
             }
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.border, lineWidth: 1)
-        )
-        .shadow(color: Color.shadowColor.opacity(0.08), radius: 18, x: 0, y: 10)
+
+        if appState.cravingsDefeated == 0 {
+            return .delayFirstPuff
+        }
+
+        return TodayAction.allCases.first(where: { !completedTodayActions.contains($0) }) ?? .deepBreaths
     }
 
-    private var cravingActionCard: some View {
+    private var progressSummary: (title: String, progress: Double, current: String, target: String) {
+        let days = appState.nicotineFreeDays
+
+        if days < 1 {
+            return ("Next step", min(Double(days), 1), "\(days)d", "1 day")
+        } else if days < 3 {
+            let segmentProgress = Double(days - 1) / 2
+            return ("Next step", max(0, min(segmentProgress, 1)), "\(days)d", "3 days")
+        } else if days < 7 {
+            let segmentProgress = Double(days - 3) / 4
+            return ("Next step", max(0, min(segmentProgress, 1)), "\(days)d", "7 days")
+        } else {
+            let span = max(appState.nicotineFreeDays, 7)
+            let progress = min(Double(span - 7) / 7, 1)
+            return ("Building momentum", progress, "\(span)d", "14 days")
+        }
+    }
+
+    private var weekCheckins: [CheckinDay] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+
+        return (0..<7).reversed().compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            let checkin = appState.dailyCheckins.first(where: { calendar.isDate($0.date, inSameDayAs: date) })
+            return CheckinDay(id: date, date: date, level: checkin?.cravingLevel)
+        }
+    }
+
+    private var homeHeroSummary: some View {
+        HeroCard(
+            eyebrow: "Daily dashboard",
+            title: "Day \(max(appState.nicotineFreeDays, 1))",
+            subtitle: "nicotine-free",
+            badge: statusBadgeTitle
+        ) {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                ProgressRing(
+                    progress: progressSummary.progress,
+                    lineWidth: 9,
+                    diameter: 82
+                )
+                .opacity(0.82)
+                .overlay {
+                    Text(progressRingValue)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(Color.ink)
+                }
+                .padding(.bottom, 2)
+
+                Text(emotionalAnchor)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.ink.opacity(0.72))
+                    .lineSpacing(3)
+                    .lineLimit(1)
+
+                Text("\(progressSummary.current) toward \(progressSummary.target)")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.heroSecondaryText.opacity(0.82))
+                    .textCase(.uppercase)
+                    .tracking(0.8)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    private var shouldShowRescueEntry: Bool {
+        let hasNoCheckinToday = !hasCheckinToday
+        let hasHighCravingToday = appState.latestCheckin?.cravingLevel == .high && hasCheckinToday
+        let hasRecentSlip = appState.slipEvents.contains {
+            Calendar.current.isDate($0.timestamp, inSameDayAs: .now)
+        }
+
+        return hasNoCheckinToday || hasHighCravingToday || hasRecentSlip
+    }
+
+    private var hasCheckinToday: Bool {
+        guard let latest = appState.latestCheckin else { return false }
+        return Calendar.current.isDateInToday(latest.date)
+    }
+
+    private var homeProgressSnapshot: some View {
+        InsightCard(
+            title: "Progress snapshot",
+            subtitle: progressSnapshotSubtitle,
+            icon: "chart.bar"
+        ) {
+            HStack(spacing: AppSpacing.md) {
+                CompactStat(
+                    label: "Streak",
+                    value: appState.smokeFreeTimeText,
+                    emphasis: .primary
+                )
+                CompactStat(
+                    label: "Saved",
+                    value: appState.moneySaved.formatted(.currency(code: currencyCode))
+                )
+                CompactStat(
+                    label: "Resisted",
+                    value: "\(appState.cravingsDefeated)"
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var todayCheckInTitle: String {
+        if hasCheckinToday {
+            return "How are cravings today?"
+        }
+        return "How are cravings today?"
+    }
+
+    private func isSelectedCheckinLevel(_ level: DailyCravingLevel) -> Bool {
+        hasCheckinToday && appState.latestCheckin?.cravingLevel == level
+    }
+
+    private func checkinStatusText(for level: DailyCravingLevel) -> String {
+        isSelectedCheckinLevel(level) ? "Selected" : levelDescriptor(for: level)
+    }
+
+    private func checkinButtonBackground(for level: DailyCravingLevel) -> Color {
+        isSelectedCheckinLevel(level) ? Color.buttonBottom.opacity(0.88) : Color.surfaceElevated
+    }
+
+    private func checkinTitleColor(for level: DailyCravingLevel) -> Color {
+        isSelectedCheckinLevel(level) ? Color.white : Color.ink
+    }
+
+    private func checkinSubtitleColor(for level: DailyCravingLevel) -> Color {
+        isSelectedCheckinLevel(level) ? Color.white.opacity(0.82) : Color.secondaryText
+    }
+
+    private var todayFocusActionTitle: String {
+        completedTodayActions.contains(selectedTodayFocus) ? "Done for today ✓" : "Mark as done"
+    }
+
+    private var todayFocusActionBackground: Color {
+        completedTodayActions.contains(selectedTodayFocus) ? Color.accentWash.opacity(0.95) : Color.surfaceElevated
+    }
+
+    private var todayFocusActionStroke: Color {
+        completedTodayActions.contains(selectedTodayFocus) ? Color.heroAccent.opacity(0.28) : Color.border
+    }
+
+    private var todayFocusTitle: String {
+        completedTodayActions.contains(selectedTodayFocus) ? "That step is done" : "Today’s focus"
+    }
+
+    private var todayFocusSubtitle: String {
+        completedTodayActions.contains(selectedTodayFocus)
+            ? "One small win, done."
+            : "One small step that can help today"
+    }
+
+    private var homeDailyCheckIn: some View {
+        ActionCard(
+            title: todayCheckInTitle,
+            subtitle: latestCheckinText,
+            icon: "waveform.path.ecg",
+            showsChevron: false
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                if hasCheckinToday {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.heroAccent)
+
+                        Text(checkinAffirmation)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(Color.secondaryText)
+                    }
+                    .transition(.opacity)
+                }
+
+                HStack(spacing: 10) {
+                ForEach(DailyCravingLevel.allCases) { level in
+                    Button {
+                        appState.saveDailyCheckin(level: level)
+                        OnboardingHaptics.light()
+                        appState.showRewardToast(
+                            title: checkinToastTitle(for: level),
+                            message: checkinToastMessage(for: level),
+                            duration: 1.6
+                        )
+                    } label: {
+                        VStack(spacing: 6) {
+                            Text(level.title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(checkinTitleColor(for: level))
+
+                            Text(checkinStatusText(for: level))
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(checkinSubtitleColor(for: level))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(checkinButtonBackground(for: level))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(
+                                    isSelectedCheckinLevel(level) ? Color.white.opacity(0.18) : Color.border,
+                                    lineWidth: 1
+                                )
+                        )
+                    }
+                    .buttonStyle(SelectableButtonStyle(isSelected: isSelectedCheckinLevel(level)))
+                }
+                }
+            }
+        }
+    }
+
+    private var homeCravingQuickAction: some View {
         Button {
             showingCravingView = true
         } label: {
-            HStack(spacing: 14) {
-                Text("⚡")
-                    .font(.title2)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("I have a craving")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.white)
-
-                    Text("Tap for help")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.white.opacity(0.82))
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.buttonTop.opacity(0.94),
-                                Color.buttonBottom.opacity(0.96)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+            ActionCard(
+                title: "Need support right now?",
+                subtitle: "Open rescue and take the next small step",
+                icon: "bolt.heart.fill",
+                emphasizesAction: true
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
-            )
-            .shadow(color: Color.buttonBottom.opacity(0.18), radius: 18, x: 0, y: 10)
-            .scaleEffect(cravingCardBreathing ? 1.02 : 1)
-            .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: cravingCardBreathing)
         }
         .buttonStyle(CardPressButtonStyle())
     }
 
-    private var todayActionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Today")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.ink)
+    private var homeTodayFocus: some View {
+        let action = selectedTodayFocus
+        let isCompleted = completedTodayActions.contains(action)
 
-            ForEach(TodayAction.allCases) { action in
-                TodayActionCard(
-                    title: action.title,
-                    helperText: action.helperText,
-                    isCompleted: completedTodayActions.contains(action)
-                ) {
-                    if completedTodayActions.contains(action) {
+        return ActionCard(
+            title: todayFocusTitle,
+            subtitle: todayFocusSubtitle,
+            icon: isCompleted ? "checkmark.circle.fill" : action.symbol,
+            showsChevron: false
+        ) {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(action.title)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Color.ink)
+
+                    Text(action.helperText)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.secondaryText)
+                }
+
+                Button {
+                    if isCompleted {
                         completedTodayActions.remove(action)
                     } else {
                         completedTodayActions.insert(action)
+                        OnboardingHaptics.success()
                         appState.showRewardToast(
-                            title: "Nice",
-                            message: "Small steps beat cravings."
+                            title: "That is one step forward.",
+                            message: todayFocusRewardMessage
                         )
                     }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                            .font(.headline.weight(.semibold))
+
+                        Text(todayFocusActionTitle)
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .foregroundStyle(isCompleted ? Color.buttonBottom : Color.ink)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(todayFocusActionBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(todayFocusActionStroke, lineWidth: 1)
+                    )
                 }
+                .buttonStyle(CardPressButtonStyle())
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var insightCard: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                showingInsightDetails.toggle()
-            }
-        } label: {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Why cravings happen")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(Color.ink)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Nicotine spikes dopamine.")
-                        .font(.body)
-                        .foregroundStyle(Color.secondaryText)
-
-                    Text("When the level drops, your brain asks for more.")
-                        .font(.body)
-                        .foregroundStyle(Color.secondaryText)
-
-                    Text("Most cravings pass within 2–3 minutes.")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.ink)
-                }
-
-                if showingInsightDetails {
-                    Text("That is why short replacement actions matter so much. You usually do not need to solve the whole day. You only need to outlast the peak of the urge.")
-                        .font(.footnote)
-                        .foregroundStyle(Color.secondaryText)
-                        .lineSpacing(3)
-                        .transition(.opacity.combined(with: .offset(y: 8)))
-                }
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(Color.border, lineWidth: 1)
-            )
-            .shadow(color: Color.shadowColor.opacity(0.08), radius: 18, x: 0, y: 10)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var milestonesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Milestones")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.ink)
-
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                ForEach(Milestone.allCases) { milestone in
-                    milestoneTile(for: milestone)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func milestoneTile(for milestone: Milestone) -> some View {
+    private func compactMilestoneTile(for milestone: Milestone) -> some View {
         let unlocked = isMilestoneUnlocked(milestone)
         let shouldAnimate = animatedMilestones.contains(milestone)
 
         return VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: unlocked ? "checkmark.circle.fill" : "lock.fill")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(unlocked ? Color.white : Color.secondaryText)
+            HStack {
+                Image(systemName: unlocked ? "checkmark.circle.fill" : "clock")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(unlocked ? Color.white : Color.heroAccent)
+
+                Spacer()
+            }
 
             Spacer(minLength: 0)
 
-            Text(milestone.title)
-                .font(.footnote.weight(.semibold))
+            Text(milestone.compactTitle)
+                .font(.headline.weight(.semibold))
                 .foregroundStyle(unlocked ? Color.white : Color.ink)
-                .multilineTextAlignment(.leading)
-                .lineLimit(3)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(milestone.title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(unlocked ? Color.white.opacity(0.82) : Color.secondaryText)
+                .lineLimit(2)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 78, maxHeight: 78, alignment: .topLeading)
-        .background(unlocked ? Color.buttonBottom : Color.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(16)
+        .frame(width: 146, height: 112, alignment: .topLeading)
+        .background(
+            unlocked
+                ? AnyShapeStyle(
+                    LinearGradient(
+                        colors: [Color.buttonTop.opacity(0.95), Color.buttonBottom.opacity(0.98)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                : AnyShapeStyle(Color.surface)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(unlocked ? Color.cardBackground.opacity(0.18) : Color.border, lineWidth: 1)
         )
-        .shadow(color: unlocked ? Color.buttonBottom.opacity(0.16) : Color.shadowColor.opacity(0.05), radius: 12, x: 0, y: 8)
-        .scaleEffect(shouldAnimate ? 1.1 : 1)
+        .shadow(color: unlocked ? Color.buttonBottom.opacity(0.14) : Color.shadowColor.opacity(0.05), radius: 14, x: 0, y: 8)
+        .scaleEffect(shouldAnimate ? 1.08 : 1)
         .animation(.easeInOut(duration: 0.25), value: shouldAnimate)
     }
 
-    private var currentWeekday: String {
-        let formatter = DateFormatter()
-        formatter.locale = .current
-        formatter.dateFormat = "EEEE"
-        return formatter.string(from: .now)
+    private var utilityFooter: some View {
+        HStack(spacing: 18) {
+            Button {
+                showingSlipFlow = true
+            } label: {
+                Text("I need to reset")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+            }
+            .buttonStyle(SecondaryButtonStyle())
+
+            Spacer()
+
+            Button {
+                showingPaywallTest = true
+            } label: {
+                Text("Open Paywall")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+            }
+            .buttonStyle(SecondaryButtonStyle())
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private var progressRingValue: String {
+        String(max(appState.nicotineFreeDays, 1))
+    }
+
+    private var statusBadgeTitle: String {
+        if appState.nicotineFreeDays >= 7 {
+            return "Building momentum"
+        } else if appState.cravingsDefeated >= 1 {
+            return "Keep going"
+        } else {
+            return "Getting started"
+        }
     }
 
     private var currencyCode: String {
         Locale.current.currency?.identifier ?? "USD"
+    }
+
+    private func levelDescriptor(for level: DailyCravingLevel) -> String {
+        switch level {
+        case .low:
+            return "Manageable"
+        case .medium:
+            return "Present"
+        case .high:
+            return "Strong"
+        }
+    }
+
+    private func checkinReflection(for level: DailyCravingLevel) -> String {
+        switch level {
+        case .low:
+            return "Today feels more manageable."
+        case .medium:
+            return "Today feels present, but manageable."
+        case .high:
+            return "Today feels heavy. Support is close."
+        }
+    }
+
+    private var checkinAffirmation: String {
+        if let latest = appState.latestCheckin?.cravingLevel, hasCheckinToday {
+            switch latest {
+            case .low:
+                return "You checked in and gave yourself a clearer read on today."
+            case .medium:
+                return "You named the moment. That makes the next step easier."
+            case .high:
+                return "You noticed the intensity early. That is a steady move."
+            }
+        }
+        return "You checked in."
+    }
+
+    private func checkinToastTitle(for level: DailyCravingLevel) -> String {
+        switch level {
+        case .low:
+            return "Nice check-in."
+        case .medium:
+            return "You named the moment."
+        case .high:
+            return "You checked in early."
+        }
+    }
+
+    private func checkinToastMessage(for level: DailyCravingLevel) -> String {
+        switch level {
+        case .low:
+            return "A quick note like this helps you stay in touch with your rhythm."
+        case .medium:
+            return "You gave yourself a clearer read on today."
+        case .high:
+            return "Support tends to work better when you catch the moment early."
+        }
+    }
+
+    private var todayFocusRewardMessage: String {
+        if appState.nicotineFreeDays >= 7 {
+            return "Small steady choices are helping this routine stick."
+        }
+        if appState.cravingsDefeated > 0 {
+            return "You are building trust with yourself."
+        }
+        return "Small wins like this are how momentum begins."
+    }
+
+    private var progressSnapshotSubtitle: String {
+        if appState.nicotineFreeDays >= 7 {
+            return "Your steady days are adding up."
+        }
+        if appState.cravingsDefeated > 0 {
+            return "Your recent choices are starting to build momentum."
+        }
+        return "Even small progress counts."
     }
 
     private func isMilestoneUnlocked(_ milestone: Milestone) -> Bool {
@@ -544,8 +678,8 @@ struct HomeView: View {
 
         for milestone in newlyUnlocked {
             appState.showRewardToast(
-                title: "Milestone reached.",
-                message: "Keep going."
+                title: "A step forward.",
+                message: "You’re building momentum."
             )
             animatedMilestones.insert(milestone)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
@@ -557,59 +691,133 @@ struct HomeView: View {
     }
 }
 
-private struct TodayActionCard: View {
+private struct HomeMetricPill: View {
     let title: String
-    let helperText: String
-    let isCompleted: Bool
-    let action: () -> Void
-
-    @State private var tapPulse = false
+    let value: String
 
     var body: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.1)) {
-                tapPulse = true
-            }
-            action()
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.easeInOut(duration: 0.12)) {
-                    tapPulse = false
-                }
-            }
-        } label: {
-            HStack(spacing: 14) {
-                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(isCompleted ? Color.buttonBottom : Color.secondaryText)
-                    .animation(.easeInOut(duration: 0.16), value: isCompleted)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(Color.ink)
-                        .multilineTextAlignment(.leading)
-
-                    Text(helperText)
-                        .font(.footnote)
-                        .foregroundStyle(Color.secondaryText)
-                        .multilineTextAlignment(.leading)
-                }
-
-                Spacer()
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-            .background(isCompleted ? Color.surfaceElevated : Color.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(isCompleted ? Color.buttonBottom.opacity(0.3) : Color.border, lineWidth: 1)
-            )
-            .shadow(color: Color.shadowColor.opacity(0.06), radius: 12, x: 0, y: 8)
-            .scaleEffect(tapPulse ? 0.97 : 1)
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            Text(value)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(Color.ink)
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.heroSecondaryText)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, AppSpacing.sm)
+        .padding(.vertical, AppSpacing.sm)
+        .background(Color.cardBackground.opacity(0.56))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+}
+
+private struct CompactStat: View {
+    let label: String
+    let value: String
+    var emphasis: StatEmphasis = .secondary
+
+    enum StatEmphasis {
+        case primary
+        case secondary
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(emphasis == .primary ? Color.heroSecondaryText : Color.secondaryText)
+
+            Text(value)
+                .font(emphasis == .primary ? .title3.weight(.bold) : .subheadline.weight(.semibold))
+                .foregroundStyle(Color.ink.opacity(emphasis == .primary ? 1 : 0.8))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct ProgressRing: View {
+    let progress: Double
+    let lineWidth: CGFloat
+    let diameter: CGFloat
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.surfaceMuted, lineWidth: lineWidth)
+
+            Circle()
+                .trim(from: 0, to: max(0.06, min(progress, 1)))
+                .stroke(
+                    AngularGradient(
+                        colors: [Color.heroAccent, Color.buttonTop, Color.buttonBottom],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: diameter, height: diameter)
+    }
+}
+
+private struct WeeklyCheckinStrip: View {
+    let days: [HomeView.CheckinDay]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Last 7 days")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            HStack(spacing: 8) {
+                ForEach(days) { day in
+                    VStack(spacing: 6) {
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(fillColor(for: day.level))
+                            .frame(width: 24, height: 40)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .stroke(strokeColor(for: day.level), lineWidth: 1)
+                            )
+
+                        Text(dayLabel(for: day.date))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color.secondaryText)
+                    }
+                }
+            }
+        }
+    }
+
+    private func fillColor(for level: DailyCravingLevel?) -> Color {
+        switch level {
+        case .low:
+            return Color.heroAccent.opacity(0.34)
+        case .medium:
+            return Color.buttonTop.opacity(0.24)
+        case .high:
+            return Color.buttonBottom.opacity(0.28)
+        case nil:
+            return Color.surfaceMuted
+        }
+    }
+
+    private func strokeColor(for level: DailyCravingLevel?) -> Color {
+        switch level {
+        case nil:
+            return Color.border
+        default:
+            return Color.clear
+        }
+    }
+
+    private func dayLabel(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateFormat = "E"
+        return String(formatter.string(from: date).prefix(1))
     }
 }
 

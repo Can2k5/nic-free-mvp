@@ -252,6 +252,12 @@ struct SlipRecoveryFlowView: View {
             trigger: selectedTrigger,
             recoveryMode: selectedRecoveryMode
         )
+        appState.showRewardToast(
+            title: selectedRecoveryMode == .keepGoing ? "You are still in this." : "You chose an honest reset.",
+            message: selectedRecoveryMode == .keepGoing
+                ? "A hard moment does not undo the care you are taking."
+                : "Starting again gently is still a form of progress."
+        )
 
         withAnimation(MicroAnimation.success) {
             step = .support

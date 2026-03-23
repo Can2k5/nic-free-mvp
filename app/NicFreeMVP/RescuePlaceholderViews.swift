@@ -131,7 +131,7 @@ struct CalmDownView: View {
                         Button {
                             dismiss()
                         } label: {
-                            Text("Back to rescue")
+                            Text("Back to support")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
@@ -142,7 +142,7 @@ struct CalmDownView: View {
                         NavigationLink {
                             CravingRescueView(selectedTab: $selectedTab)
                         } label: {
-                            Text("Log this moment")
+                            Text("Let this moment count")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.secondaryText)
                         }
@@ -291,7 +291,7 @@ struct RememberWhyView: View {
                         Button {
                             dismiss()
                         } label: {
-                            Text("Back to rescue")
+                            Text("Back to support")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
@@ -354,7 +354,7 @@ struct ChangeMomentView: View {
                         Button {
                             dismiss()
                         } label: {
-                            Text("Back to rescue")
+                            Text("Back to support")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
