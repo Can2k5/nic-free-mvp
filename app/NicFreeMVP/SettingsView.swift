@@ -8,10 +8,28 @@ struct SettingsView: View {
         var id: String { rawValue }
     }
 
+    private enum Metrics {
+        static let screenHorizontalPadding = AppSpacing.lg
+        static let screenTopPadding = AppSpacing.xl
+        static let screenBottomPadding = AppSpacing.xxl
+        static let headerTopPadding = AppSpacing.sm
+        static let headerBottomPadding = AppSpacing.xl
+        static let sectionSpacing = AppSpacing.section
+        static let heroSpacing = AppSpacing.xl
+        static let groupedContentSpacing = AppSpacing.md
+        static let subsectionSpacing = AppSpacing.lg
+        static let rowSpacing = AppSpacing.sm
+        static let compactSpacing = AppSpacing.xs
+        static let controlPadding = AppSpacing.sm
+        static let controlCornerRadius: CGFloat = 20
+        static let rowCornerRadius: CGFloat = 18
+        static let groupCornerRadius: CGFloat = 28
+        static let heroCornerRadius: CGFloat = 30
+    }
+
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var onboardingManager: OnboardingManager
     @EnvironmentObject private var themeManager: ThemeManager
-    @State private var newReason = ""
     @State private var pendingAction: DataAction?
 
     var body: some View {
@@ -20,227 +38,22 @@ struct SettingsView: View {
                 AppBackground()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 22) {
-                        ScreenHeader(
-                            eyebrow: "Settings",
-                            title: "Personalize your quit.",
-                            subtitle: "Update your quit setup, keep your reasons close, and manage your data carefully."
-                        )
-                        .softEntrance(delay: 0.02, distance: 10)
+                    VStack(alignment: .leading, spacing: Metrics.sectionSpacing) {
+                        settingsHeader
+                            .softEntrance(delay: 0.02, distance: 10)
 
-                        CardSection {
-                            VStack(alignment: .leading, spacing: 18) {
-                                sectionLabel("Appearance")
+                        navigationOverviewSection
+                            .softEntrance(delay: 0.06, distance: 12)
 
-                                Text("Choose how the app should look across all screens.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.secondaryText)
-                                    .lineSpacing(4)
+                        resetSection
+                            .softEntrance(delay: 0.1, distance: 12)
 
-                                VStack(spacing: 10) {
-                                    ForEach(ThemeMode.allCases) { mode in
-                                        appearanceOptionRow(mode)
-                                    }
-                                }
-                            }
-                        }
-                        .softEntrance(delay: 0.06, distance: 12)
-
-                        CardSection {
-                            VStack(alignment: .leading, spacing: 18) {
-                                sectionLabel("Quit setup")
-
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("Quit date")
-                                        .font(.headline)
-                                        .foregroundStyle(Color.ink)
-
-                                    Text("This updates your nicotine-free days and progress immediately.")
-                                        .font(.footnote)
-                                        .foregroundStyle(Color.secondaryText)
-
-                                    DatePicker(
-                                        "Quit date",
-                                        selection: $appState.quitDate,
-                                        displayedComponents: .date
-                                    )
-                                    .datePickerStyle(.graphical)
-                                    .labelsHidden()
-                                    .tint(Color.buttonBottom)
-                                    .padding(12)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color.inputBackground)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                            .stroke(Color.border, lineWidth: 1)
-                                    )
-                                }
-
-                                Divider()
-                                    .overlay(Color.divider)
-
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("Daily nicotine spend")
-                                        .font(.headline)
-                                        .foregroundStyle(Color.ink)
-
-                                    HStack(alignment: .firstTextBaseline) {
-                                        Text(appState.dailySpend.formatted(.currency(code: "USD")))
-                                            .font(.system(size: 30, weight: .bold, design: .rounded))
-                                            .foregroundStyle(Color.ink)
-
-                                        Spacer()
-
-                                        Text("per day")
-                                            .font(.footnote)
-                                            .foregroundStyle(Color.secondaryText)
-                                    }
-
-                                    Stepper(value: $appState.dailySpend, in: 0...100, step: 0.5) {
-                                        Text("Adjust your average daily spend")
-                                            .font(.subheadline)
-                                            .foregroundStyle(Color.secondaryText)
-                                    }
-                                }
-                            }
-                        }
-                        .softEntrance(delay: 0.08, distance: 12)
-
-                        CardSection {
-                            VStack(alignment: .leading, spacing: 18) {
-                                sectionLabel("Motivation")
-
-                                Text("Keep up to three personal reasons close so the app can bring them back when cravings hit.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.secondaryText)
-                                    .lineSpacing(4)
-
-                                HStack(spacing: 10) {
-                                    TextField("My health", text: $newReason)
-                                        .textFieldStyle(.plain)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 14)
-                                        .background(Color.inputBackground)
-                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                                    Button("Add") {
-                                        appState.addQuitReason(newReason)
-                                        newReason = ""
-                                    }
-                                    .disabled(addReasonDisabled)
-                                    .buttonStyle(PrimaryButtonStyle(isEnabled: !addReasonDisabled))
-                                }
-
-                                if appState.quitReasons.isEmpty {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("No reasons added yet")
-                                            .font(.headline)
-                                            .foregroundStyle(Color.ink)
-
-                                        Text("Add up to three short reasons like your health, your future, or your family to make motivation and rescue moments more personal.")
-                                            .font(.footnote)
-                                            .foregroundStyle(Color.secondaryText)
-                                            .lineSpacing(3)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 14)
-                                    .background(Color.surfaceMuted)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                } else {
-                                    ForEach(appState.quitReasons, id: \.self) { reason in
-                                        HStack(spacing: 12) {
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(reason)
-                                                    .font(.headline)
-                                                    .foregroundStyle(Color.ink)
-
-                                                Text("Used in motivation and rescue moments.")
-                                                    .font(.footnote)
-                                                    .foregroundStyle(Color.secondaryText)
-                                            }
-
-                                            Spacer()
-
-                                            Button("Remove") {
-                                                appState.removeQuitReason(reason)
-                                            }
-                                            .font(.footnote.weight(.semibold))
-                                            .foregroundStyle(Color.secondaryText)
-                                            .buttonStyle(SecondaryButtonStyle())
-                                        }
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 14)
-                                        .background(Color.surfaceMuted)
-                                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                    }
-                                }
-                            }
-                        }
-                        .softEntrance(delay: 0.14, distance: 12)
-
-                        CardSection {
-                            VStack(alignment: .leading, spacing: 18) {
-                                sectionLabel("Data and reset")
-
-                                Text("Use these carefully. They affect stored progress and history.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.secondaryText)
-                                    .lineSpacing(4)
-
-                                subtleActionRow(
-                                    title: "Reset progress",
-                                    subtitle: "Reset streak, cravings, slips, and daily check-ins."
-                                ) {
-                                    pendingAction = .resetProgress
-                                }
-
-                                subtleActionRow(
-                                    title: "Clear craving history",
-                                    subtitle: "Remove logged craving events while keeping your quit setup."
-                                ) {
-                                    pendingAction = .clearCravingHistory
-                                }
-
-                                subtleActionRow(
-                                    title: "Reset onboarding",
-                                    subtitle: "Start the onboarding flow again from the beginning."
-                                ) {
-                                    appState.resetOnboardingForDebug()
-                                    onboardingManager.reset()
-                                }
-                            }
-                        }
-                        .softEntrance(delay: 0.2, distance: 12)
-
-                        CardSection(fill: AnyShapeStyle(
-                            LinearGradient(
-                                colors: [Color.cardBackground.opacity(0.96), Color.mist.opacity(0.32)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )) {
-                            VStack(alignment: .leading, spacing: 16) {
-                                sectionLabel("App information")
-
-                                infoRow(title: "App", value: "Nic Free MVP")
-                                infoRow(title: "Version", value: appVersionText)
-
-                                Text("A lightweight quit companion focused on craving support, progress, and personal motivation.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.secondaryText)
-                                    .lineSpacing(4)
-
-                                infoLinkRow("Privacy Policy")
-                                infoLinkRow("Terms")
-                            }
-                        }
-                        .softEntrance(delay: 0.26, distance: 12)
+                        appInformationSection
+                            .softEntrance(delay: 0.14, distance: 12)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 18)
-                    .padding(.bottom, 32)
+                    .padding(.horizontal, Metrics.screenHorizontalPadding)
+                    .padding(.top, Metrics.screenTopPadding)
+                    .padding(.bottom, Metrics.screenBottomPadding)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -272,53 +85,227 @@ struct SettingsView: View {
         }
     }
 
-    private var addReasonDisabled: Bool {
-        newReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || appState.quitReasons.count >= 3
+    private var settingsHeader: some View {
+        VStack(alignment: .leading, spacing: Metrics.heroSpacing) {
+            Text("Settings")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+                .textCase(.uppercase)
+                .tracking(1.3)
+
+            SettingsHeroCard(
+                title: heroTitle,
+                subtitle: heroSubtitle,
+                supportingLine: heroSupportingLine,
+                accentLabel: heroAccentLabel,
+                metrics: heroMetrics
+            )
+        }
+        .padding(.top, Metrics.headerTopPadding)
+        .padding(.bottom, Metrics.headerBottomPadding)
     }
 
-    private func appearanceOptionRow(_ mode: ThemeMode) -> some View {
-        Button {
-            withAnimation(MicroAnimation.selection) {
-                themeManager.mode = mode
-            }
-        } label: {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(mode.title)
-                        .font(.headline)
-                        .foregroundStyle(Color.ink)
+    private var heroTitle: String {
+        if appState.nicotineFreeDays > 0 {
+            return "\(displayName), your quit is taking shape."
+        }
+        return "Personalize the space that supports your quit."
+    }
 
-                    Text(mode.subtitle)
-                        .font(.footnote)
-                        .foregroundStyle(Color.secondaryText)
-                        .multilineTextAlignment(.leading)
+    private var heroSubtitle: String {
+        if appState.nicotineFreeDays > 0 {
+            return "You are \(appState.nicotineFreeDays) \(appState.nicotineFreeDays == 1 ? "day" : "days") nicotine-free. Keep your setup and reasons aligned."
+        }
+        return "Keep your setup and reasons aligned so support is ready when you need it."
+    }
+
+    private var heroSupportingLine: String {
+        if let highlightedQuitReason = appState.highlightedQuitReason {
+            return "\"\(highlightedQuitReason)\" is ready for rescue moments."
+        }
+
+        if !appState.dynamicMotivation.isEmpty {
+            return appState.dynamicMotivation
+        }
+
+        return "A thoughtful setup makes the rest of the journey feel lighter."
+    }
+
+    private var heroAccentLabel: String {
+        "Quit since \(startDateText)"
+    }
+
+    private var heroMetrics: [SettingsHeroMetric] {
+        [
+            SettingsHeroMetric(
+                value: "\(max(appState.nicotineFreeDays, 0))",
+                label: appState.nicotineFreeDays == 1 ? "day nicotine-free" : "days nicotine-free",
+                symbol: "sparkles"
+            ),
+            SettingsHeroMetric(
+                value: appState.moneySaved.formatted(.currency(code: currencyCode)),
+                label: "saved so far",
+                symbol: "eurosign.circle.fill"
+            )
+        ]
+    }
+
+    private var displayName: String {
+        let trimmed = appState.profileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "You" : trimmed
+    }
+
+    private var startDateText: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: appState.quitDate)
+    }
+
+    private var currencyCode: String {
+        Locale.current.currency?.identifier ?? "USD"
+    }
+
+    private var navigationOverviewSection: some View {
+        SettingsSection(
+            title: "Settings",
+            subtitle: "Open the area you want to review or update."
+        ) {
+            SettingsGroupCard {
+                VStack(spacing: 0) {
+                    NavigationLink {
+                        ProgressSettingsView()
+                    } label: {
+                        SettingsNavigationRow(
+                            title: "Your Progress",
+                            subtitle: "Quit date and daily spend",
+                            icon: "chart.line"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    SettingsDivider(leadingInset: 56)
+
+                    NavigationLink {
+                        MotivationSettingsView()
+                    } label: {
+                        SettingsNavigationRow(
+                            title: "Your Motivation",
+                            subtitle: "Your personal reasons",
+                            icon: "heart"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    SettingsDivider(leadingInset: 56)
+
+                    NavigationLink {
+                        AppSettingsView()
+                    } label: {
+                        SettingsNavigationRow(
+                            title: "App Settings",
+                            subtitle: "Appearance and preferences",
+                            icon: "gear"
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
+            }
+        }
+    }
 
-                Spacer()
+    private var resetSection: some View {
+        SettingsSection(
+            title: "Data and reset",
+            subtitle: "Use these actions carefully. They affect saved progress and history."
+        ) {
+            SettingsGroupCard(
+                fill: AnyShapeStyle(
+                    LinearGradient(
+                        colors: [Color.cardBackground.opacity(0.99), Color.heroTop.opacity(0.14)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                ),
+                cornerRadius: 22,
+                verticalPadding: 6,
+                topHighlightOpacity: 0.1,
+                shadowOpacity: 0.03
+            ) {
+                VStack(spacing: 0) {
+                    SettingsRow(
+                        title: "Reset progress",
+                        subtitle: "Reset streak, cravings, slips, and daily check-ins.",
+                        leadingIcon: "arrow.counterclockwise",
+                        role: .destructive,
+                        density: .compact,
+                        showsChevron: true,
+                        action: { pendingAction = .resetProgress }
+                    )
 
-                ZStack {
-                    Circle()
-                        .fill(themeManager.mode == mode ? Color.buttonBottom : Color.surfaceMuted)
-                        .frame(width: 26, height: 26)
+                    SettingsDivider(leadingInset: 58)
 
-                    if themeManager.mode == mode {
-                        Image(systemName: "checkmark")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.white)
+                    SettingsRow(
+                        title: "Clear craving history",
+                        subtitle: "Remove logged craving events while keeping your quit setup.",
+                        leadingIcon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+                        role: .destructive,
+                        density: .compact,
+                        showsChevron: true,
+                        action: { pendingAction = .clearCravingHistory }
+                    )
+
+                    SettingsDivider(leadingInset: 58)
+
+                    SettingsRow(
+                        title: "Reset onboarding",
+                        subtitle: "Start onboarding again from the beginning.",
+                        leadingIcon: "sparkles",
+                        density: .compact,
+                        showsChevron: true
+                    ) {
+                        appState.resetOnboardingForDebug()
+                        onboardingManager.reset()
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 15)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(themeManager.mode == mode ? Color.buttonBottom.opacity(0.08) : Color.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(themeManager.mode == mode ? Color.buttonBottom.opacity(0.22) : Color.border, lineWidth: 1)
-            )
         }
-        .buttonStyle(CardPressButtonStyle())
+    }
+
+    private var appInformationSection: some View {
+        SettingsSection(
+            title: "App information",
+            subtitle: "Reference details and legal information."
+        ) {
+            VStack(spacing: 10) {
+                SettingsGroupCard(
+                    fill: AnyShapeStyle(
+                        LinearGradient(
+                            colors: [Color.cardBackground.opacity(0.99), Color.mist.opacity(0.12)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    ),
+                    cornerRadius: 20,
+                    verticalPadding: 4,
+                    topHighlightOpacity: 0.08,
+                    shadowOpacity: 0.022
+                ) {
+                    VStack(spacing: 0) {
+                        SettingsInfoRow(title: "App", value: "Nic Free MVP")
+                        SettingsDivider()
+                        SettingsInfoRow(title: "Version", value: appVersionText)
+                    }
+                }
+
+                SettingsGroupCard(cornerRadius: 20, verticalPadding: 4, topHighlightOpacity: 0.08, shadowOpacity: 0.02) {
+                    VStack(spacing: 0) {
+                        SettingsRow(title: "Privacy Policy", density: .compact, showsChevron: true)
+                        SettingsDivider()
+                        SettingsRow(title: "Terms", density: .compact, showsChevron: true)
+                    }
+                }
+            }
+        }
     }
 
     private var appVersionText: String {
@@ -349,69 +336,1101 @@ struct SettingsView: View {
         }
     }
 
-    private func sectionLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(Color.secondaryText)
-            .textCase(.uppercase)
-            .tracking(1.1)
+}
+
+private struct ProgressSettingsView: View {
+    @EnvironmentObject private var appState: AppState
+
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            ScrollView(showsIndicators: false) {
+                SettingsDetailContainer {
+                    SettingsSection(
+                        title: "Your progress",
+                        subtitle: "Update the details that shape your progress and savings."
+                    ) {
+                        SettingsGroupCard {
+                            VStack(alignment: .leading, spacing: AppSpacing.xl) {
+                                VStack(alignment: .leading, spacing: 14) {
+                                    SettingsTitleText("Quit date")
+                                    SettingsSupportingText("Changes apply to your nicotine-free days and progress right away.")
+
+                                    DatePicker(
+                                        "Quit date",
+                                        selection: $appState.quitDate,
+                                        displayedComponents: .date
+                                    )
+                                    .datePickerStyle(.graphical)
+                                    .labelsHidden()
+                                    .tint(Color.buttonBottom)
+                                    .padding(.horizontal, 8)
+                                    .padding(.top, 10)
+                                    .padding(.bottom, 20)
+                                    .frame(maxWidth: .infinity, minHeight: 420, alignment: .top)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.inputBackground)
+                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                            .stroke(Color.border, lineWidth: 1)
+                                    )
+                                }
+
+                                SettingsDivider()
+                                    .padding(.top, 2)
+
+                                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                                    SettingsTitleText("Daily nicotine spend")
+
+                                    HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
+                                        Text(appState.dailySpend.formatted(.currency(code: "USD")))
+                                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                                            .foregroundStyle(Color.ink)
+
+                                        Text("per day")
+                                            .font(.caption)
+                                            .foregroundStyle(Color.textMuted)
+
+                                        Spacer()
+                                    }
+
+                                    Stepper(value: $appState.dailySpend, in: 0...100, step: 0.5) {
+                                        SettingsSupportingText("Adjust your average daily spend.")
+                                    }
+                                    .tint(Color.buttonBottom)
+                                    .controlSize(.large)
+                                    .padding(.horizontal, AppSpacing.md)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [Color.surfaceElevated, Color.inputBackground.opacity(0.94)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            )
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            .stroke(Color.borderStrong.opacity(0.34), lineWidth: 1)
+                                    )
+                                    .shadow(color: Color.shadowColor.opacity(0.06), radius: 10, x: 0, y: 6)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Your Progress")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+    }
+}
+
+private struct MotivationSettingsView: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var newReason = ""
+
+    private var addReasonDisabled: Bool {
+        newReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || appState.quitReasons.count >= 3
     }
 
-    private func subtleActionRow(title: String, subtitle: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.headline)
-                        .foregroundStyle(Color.ink)
+    var body: some View {
+        ZStack {
+            AppBackground()
 
+            ScrollView(showsIndicators: false) {
+                SettingsDetailContainer {
+                    SettingsSection(
+                        title: "Your motivation",
+                        subtitle: "Keep up to three personal reasons close for cravings and rescue moments."
+                    ) {
+                        SettingsGroupCard {
+                            VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                                SettingsMotivationHeader(reasonCount: appState.quitReasons.count)
+
+                                HStack(alignment: .center, spacing: AppSpacing.sm) {
+                                    HStack(spacing: AppSpacing.sm) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(addReasonDisabled ? Color.textMuted : Color.buttonBottom)
+
+                                        TextField("My health", text: $newReason)
+                                            .textFieldStyle(.plain)
+                                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                                            .foregroundStyle(Color.ink)
+                                    }
+                                    .padding(.horizontal, AppSpacing.md)
+                                    .padding(.vertical, 15)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [Color.inputBackground, Color.surfaceElevated.opacity(0.92)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            )
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            .stroke(Color.border.opacity(0.7), lineWidth: 1)
+                                    )
+
+                                    Button {
+                                        withAnimation(.easeInOut(duration: 0.22)) {
+                                            appState.addQuitReason(newReason)
+                                            newReason = ""
+                                        }
+                                    } label: {
+                                        Text(appState.quitReasons.count >= 3 ? "Full" : "Add")
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(addReasonDisabled ? Color.secondaryText : Color.white)
+                                            .frame(minWidth: 64)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 15)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                                    .fill(
+                                                        addReasonDisabled
+                                                            ? AnyShapeStyle(
+                                                                LinearGradient(
+                                                                    colors: [Color.surfaceMuted, Color.surface.opacity(0.85)],
+                                                                    startPoint: .topLeading,
+                                                                    endPoint: .bottomTrailing
+                                                                )
+                                                            )
+                                                            : AnyShapeStyle(
+                                                                LinearGradient(
+                                                                    colors: [Color.buttonTop.opacity(0.96), Color.buttonBottom.opacity(0.92)],
+                                                                    startPoint: .topLeading,
+                                                                    endPoint: .bottomTrailing
+                                                                )
+                                                            )
+                                                    )
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                                    .stroke(
+                                                        addReasonDisabled ? Color.border.opacity(0.45) : Color.buttonBottom.opacity(0.18),
+                                                        lineWidth: 1
+                                                    )
+                                            )
+                                            .shadow(color: addReasonDisabled ? Color.clear : Color.buttonBottom.opacity(0.12), radius: 12, x: 0, y: 7)
+                                    }
+                                    .disabled(addReasonDisabled)
+                                    .buttonStyle(.plain)
+                                }
+
+                                if appState.quitReasons.isEmpty {
+                                    MotivationEmptyStateCard()
+                                } else {
+                                    VStack(spacing: AppSpacing.sm) {
+                                        ForEach(appState.quitReasons, id: \.self) { reason in
+                                            MotivationReasonCard(reason: reason) {
+                                                withAnimation(.easeInOut(duration: 0.22)) {
+                                                    appState.removeQuitReason(reason)
+                                                }
+                                            }
+                                            .transition(.asymmetric(
+                                                insertion: .opacity.combined(with: .move(edge: .top)),
+                                                removal: .opacity.combined(with: .scale(scale: 0.98))
+                                            ))
+                                        }
+                                    }
+                                    .animation(.easeInOut(duration: 0.22), value: appState.quitReasons)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Your Motivation")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+    }
+}
+
+private struct AppSettingsView: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            ScrollView(showsIndicators: false) {
+                SettingsDetailContainer {
+                    SettingsSection(
+                        title: "App settings",
+                        subtitle: "Choose how Nic Free should look across the app."
+                    ) {
+                        SettingsGroupCard {
+                            VStack(spacing: 0) {
+                                ForEach(Array(ThemeMode.allCases.enumerated()), id: \.element) { index, mode in
+                                    SettingsAppearanceOptionRow(
+                                        mode: mode,
+                                        isSelected: themeManager.mode == mode
+                                    ) {
+                                        withAnimation(MicroAnimation.selection) {
+                                            themeManager.mode = mode
+                                        }
+                                    }
+
+                                    if index < ThemeMode.allCases.count - 1 {
+                                        SettingsDivider()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("App Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+    }
+}
+
+private struct SettingsDetailContainer<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.section) {
+            content
+        }
+        .padding(.horizontal, AppSpacing.lg)
+        .padding(.top, AppSpacing.xl)
+        .padding(.bottom, AppSpacing.xxl)
+    }
+}
+
+private struct SettingsNavigationRow: View {
+    let title: String
+    let subtitle: String?
+    let icon: String?
+
+    var body: some View {
+        HStack(spacing: AppSpacing.md) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.accentInk)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.accentWash.opacity(0.88), Color.surfaceElevated.opacity(0.76)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .stroke(Color.border.opacity(0.38), lineWidth: 0.85)
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.ink)
+
+                if let subtitle {
                     Text(subtitle)
-                        .font(.footnote)
+                        .font(.caption)
                         .foregroundStyle(Color.secondaryText)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.secondaryText)
+                .frame(width: 12, alignment: .trailing)
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct SettingsTitleText: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 19, weight: .semibold, design: .rounded))
+            .foregroundStyle(Color.ink)
+            .multilineTextAlignment(.leading)
+    }
+}
+
+private struct SettingsSupportingText: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.subheadline)
+            .foregroundStyle(Color.secondaryText)
+            .lineSpacing(3)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+private struct SettingsMotivationHeader: View {
+    let reasonCount: Int
+
+    var body: some View {
+        HStack(alignment: .top, spacing: AppSpacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentWash, Color.surfaceElevated.opacity(0.92)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
+                Image(systemName: "heart.text.square")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.accentInk)
+            }
+            .frame(width: 42, height: 42)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.border.opacity(0.62), lineWidth: 1)
+            )
+
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text("Reasons that matter to you")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.ink)
+
+                Text("These appear again in rescue moments, so a few short reasons are enough.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.secondaryText)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+
+            Text("\(reasonCount)/3")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.buttonBottom)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.18), Color.accentWash.opacity(0.86)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(Color.borderStrong.opacity(0.45), lineWidth: 1)
+                )
+        }
+    }
+}
+
+private struct MotivationReasonCard: View {
+    let reason: String
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: AppSpacing.md) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Saved reason")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+                    .textCase(.uppercase)
+                    .tracking(1.0)
+
+                Text(reason)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            Button(action: onRemove) {
+                Label("Remove", systemImage: "xmark")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+                    .labelStyle(.iconOnly)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.surfaceElevated, Color.inputBackground.opacity(0.9)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(Color.border.opacity(0.75), lineWidth: 1)
+                    )
+            }
+            .accessibilityLabel("Remove reason")
+            .buttonStyle(SecondaryButtonStyle())
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, 15)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.cardSecondary.opacity(0.96), Color.surfaceElevated.opacity(0.74)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.border.opacity(0.7), Color.borderStrong.opacity(0.18)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .shadow(color: Color.shadowColor.opacity(0.04), radius: 8, x: 0, y: 4)
+    }
+}
+
+private struct SettingsAppearanceOptionRow: View {
+    let mode: ThemeMode
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: AppSpacing.md) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text(mode.title)
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .foregroundStyle(isSelected ? Color.buttonBottom : Color.ink)
+
+                    Text(mode.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(isSelected ? Color.accentInk : Color.secondaryText)
                         .multilineTextAlignment(.leading)
                 }
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.secondaryText)
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? Color.buttonBottom : Color.surfaceMuted)
+                        .frame(width: 28, height: 28)
+                        .overlay(
+                            Circle()
+                                .stroke(isSelected ? Color.buttonBottom.opacity(0.18) : Color.border.opacity(0.65), lineWidth: isSelected ? 6 : 1)
+                        )
+
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.white)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(Color.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, 15)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        isSelected
+                            ? AnyShapeStyle(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.22),
+                                        Color.buttonBottom.opacity(0.16),
+                                        Color.accentWash.opacity(0.72)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            : AnyShapeStyle(Color.clear)
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(
+                        isSelected ? Color.borderStrong.opacity(0.72) : Color.clear,
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: isSelected ? Color.buttonBottom.opacity(0.1) : Color.clear, radius: 10, x: 0, y: 7)
+            .shadow(color: isSelected ? Color.white.opacity(0.12) : Color.clear, radius: 1, x: 0, y: 1)
+            .contentShape(Rectangle())
+            .animation(.easeInOut(duration: 0.2), value: isSelected)
         }
-        .buttonStyle(CardPressButtonStyle())
+        .buttonStyle(SettingsSelectionButtonStyle(isSelected: isSelected))
+    }
+}
+
+private struct MotivationEmptyStateCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            Text("Nothing saved yet")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundStyle(Color.ink)
+
+            Text("Add a few short reasons like your health, your future, or the people you want to show up for.")
+                .font(.footnote)
+                .foregroundStyle(Color.secondaryText)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, 15)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.surfaceMuted.opacity(0.95), Color.accentWash.opacity(0.54)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.border.opacity(0.58), lineWidth: 1)
+        )
+    }
+}
+
+private struct SettingsSection<Content: View>: View {
+    let title: String
+    var subtitle: String?
+    @ViewBuilder let content: Content
+
+    init(title: String, subtitle: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content()
     }
 
-    private func infoRow(title: String, value: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(Color.secondaryText)
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+                    .textCase(.uppercase)
+                    .tracking(1.3)
 
-            Spacer()
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(Color.secondaryText)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct SettingsGroupCard<Content: View>: View {
+    private let cornerRadius: CGFloat
+    private let fill: AnyShapeStyle
+    private let verticalPadding: CGFloat
+    private let topHighlightOpacity: Double
+    private let shadowOpacity: Double
+    @ViewBuilder let content: Content
+
+    init(
+        fill: AnyShapeStyle = AnyShapeStyle(Color.cardBackground),
+        cornerRadius: CGFloat = 28,
+        verticalPadding: CGFloat = 8,
+        topHighlightOpacity: Double = 0.16,
+        shadowOpacity: Double = 0.07,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.fill = fill
+        self.cornerRadius = cornerRadius
+        self.verticalPadding = verticalPadding
+        self.topHighlightOpacity = topHighlightOpacity
+        self.shadowOpacity = shadowOpacity
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(.vertical, verticalPadding)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(fill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.borderStrong.opacity(0.56), Color.border.opacity(0.2)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.85
+                    )
+            )
+            .overlay(alignment: .top) {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(topHighlightOpacity), Color.clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: 16)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .inset(by: 1)
+                    .stroke(Color.white.opacity(0.035), lineWidth: 0.75)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .shadow(color: Color.shadowColor.opacity(shadowOpacity), radius: 9, x: 0, y: 4)
+            .shadow(color: Color.onboardingShadow.opacity(shadowOpacity * 0.38), radius: 14, x: 0, y: 6)
+    }
+}
+
+private enum SettingsRowRole {
+    case normal
+    case destructive
+}
+
+private enum SettingsRowDensity {
+    case regular
+    case compact
+}
+
+private struct SettingsRow<Trailing: View>: View {
+    let title: String
+    var subtitle: String? = nil
+    var leadingIcon: String? = nil
+    var role: SettingsRowRole = .normal
+    var density: SettingsRowDensity = .regular
+    var showsChevron: Bool = false
+    var action: (() -> Void)? = nil
+    @ViewBuilder var trailing: () -> Trailing
+
+    init(
+        title: String,
+        subtitle: String? = nil,
+        leadingIcon: String? = nil,
+        role: SettingsRowRole = .normal,
+        density: SettingsRowDensity = .regular,
+        showsChevron: Bool = false,
+        action: (() -> Void)? = nil,
+        @ViewBuilder trailing: @escaping () -> Trailing = { EmptyView() }
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.leadingIcon = leadingIcon
+        self.role = role
+        self.density = density
+        self.showsChevron = showsChevron
+        self.action = action
+        self.trailing = trailing
+    }
+
+    var body: some View {
+        Group {
+            if let action {
+                Button(action: action) {
+                    rowBody
+                }
+                .buttonStyle(SettingsRowPressButtonStyle(role: role))
+            } else {
+                rowBody
+            }
+        }
+    }
+
+    private var rowBody: some View {
+        HStack(alignment: subtitle == nil ? .center : .top, spacing: AppSpacing.md) {
+            if let leadingIcon {
+                Image(systemName: leadingIcon)
+                    .font(.system(size: density == .compact ? 13 : 14, weight: .semibold))
+                    .foregroundStyle(role == .destructive ? Color.buttonBottom.opacity(0.9) : Color.accentInk)
+                    .frame(width: density == .compact ? 28 : 30, height: density == .compact ? 28 : 30)
+                    .background(
+                        RoundedRectangle(cornerRadius: density == .compact ? 9 : 10, style: .continuous)
+                            .fill(
+                                role == .destructive
+                                    ? AnyShapeStyle(
+                                        LinearGradient(
+                                            colors: [Color.buttonBottom.opacity(0.08), Color.heroTop.opacity(0.32)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    : AnyShapeStyle(
+                                        LinearGradient(
+                                            colors: [Color.accentWash.opacity(0.88), Color.surfaceElevated.opacity(0.76)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                            )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: density == .compact ? 9 : 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: density == .compact ? 9 : 10, style: .continuous)
+                            .stroke(
+                                role == .destructive ? Color.buttonBottom.opacity(0.12) : Color.border.opacity(0.38),
+                                lineWidth: 0.85
+                            )
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: density == .compact ? 4 : AppSpacing.xs) {
+                Text(title)
+                    .font(.system(size: density == .compact ? 15.5 : 17, weight: density == .compact && subtitle == nil ? .medium : .semibold, design: .rounded))
+                    .foregroundStyle(role == .destructive ? Color.buttonBottom : Color.ink)
+
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(role == .destructive ? Color.buttonBottom.opacity(0.72) : Color.secondaryText)
+                        .lineSpacing(1)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            trailing()
+
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(role == .destructive ? Color.buttonBottom.opacity(0.78) : Color.secondaryText)
+                    .frame(width: 12, alignment: .trailing)
+            }
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, density == .compact ? 11 : 14)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct SettingsInfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: AppSpacing.md) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.textMuted)
+                .textCase(.uppercase)
+                .tracking(0.8)
+
+            Spacer(minLength: 0)
 
             Text(value)
-                .font(.subheadline.weight(.semibold))
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.ink)
+                .multilineTextAlignment(.trailing)
         }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, 10)
     }
+}
 
-    private func infoLinkRow(_ title: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(Color.ink)
+private struct SettingsHeroMetric: Identifiable {
+    let id = UUID()
+    let value: String
+    let label: String
+    let symbol: String
+}
 
-            Spacer()
+private struct SettingsHeroCard: View {
+    private let cornerRadius: CGFloat = 30
+    let title: String
+    let subtitle: String
+    let supportingLine: String
+    let accentLabel: String
+    let metrics: [SettingsHeroMetric]
 
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Color.secondaryText)
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.cardBackground.opacity(0.99),
+                            Color.heroTop.opacity(0.78),
+                            Color.heroBottom.opacity(0.48)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.06), Color.clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .padding(1.25)
+
+            Circle()
+                .fill(Color.buttonBottom.opacity(0.08))
+                .frame(width: 120, height: 120)
+                .blur(radius: 18)
+                .offset(x: 32, y: -24)
+
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 0.8)
+                .padding(1)
+
+            VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                HStack(alignment: .top, spacing: AppSpacing.lg) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(accentLabel)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.buttonBottom.opacity(0.9))
+                            .textCase(.uppercase)
+                            .tracking(1.1)
+
+                        Text(title)
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.ink)
+                            .lineSpacing(1)
+                            .multilineTextAlignment(.leading)
+
+                        Text(subtitle)
+                            .font(.footnote)
+                            .foregroundStyle(Color.heroSecondaryText.opacity(0.94))
+                            .lineSpacing(2)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    SettingsHeroAccent()
+                }
+
+                HStack(spacing: AppSpacing.sm) {
+                    ForEach(metrics) { metric in
+                        SettingsHeroMetricCard(metric: metric)
+                    }
+                }
+
+                Text(supportingLine)
+                    .font(.footnote)
+                    .foregroundStyle(Color.helperText.opacity(0.92))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.vertical, 24)
         }
-        .padding(.vertical, 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.borderStrong.opacity(0.7), Color.border.opacity(0.22)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.95
+                )
+        )
+        .overlay(alignment: .top) {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.18), Color.clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(height: 28)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+        .overlay(alignment: .bottom) {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.clear, Color.ink.opacity(0.03)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+        .shadow(color: Color.shadowColor.opacity(0.07), radius: 18, x: 0, y: 10)
+        .shadow(color: Color.buttonBottom.opacity(0.04), radius: 22, x: 0, y: 10)
+    }
+}
+
+private struct SettingsHeroAccent: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.buttonTop.opacity(0.94), Color.buttonBottom.opacity(0.88)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            Image(systemName: "slider.horizontal.3")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(Color.white.opacity(0.97))
+        }
+        .frame(width: 48, height: 48)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.16), lineWidth: 1)
+        )
+        .shadow(color: Color.buttonBottom.opacity(0.12), radius: 10, x: 0, y: 6)
+    }
+}
+
+private struct SettingsHeroMetricCard: View {
+    let metric: SettingsHeroMetric
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 6) {
+                Image(systemName: metric.symbol)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.buttonBottom.opacity(0.9))
+
+                Text(metric.label)
+                    .font(.caption)
+                    .foregroundStyle(Color.secondaryText)
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+            }
+
+            Text(metric.value)
+                .font(.system(size: 19, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.26), Color.surfaceElevated.opacity(0.42)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.border.opacity(0.62), lineWidth: 0.9)
+        )
+    }
+}
+
+private struct SettingsDivider: View {
+    var leadingInset: CGFloat = AppSpacing.md
+
+    var body: some View {
+        Divider()
+            .overlay(Color.divider.opacity(0.74))
+            .padding(.leading, leadingInset)
+    }
+}
+
+private struct SettingsSelectionButtonStyle: ButtonStyle {
+    let isSelected: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.982 : 1)
+            .opacity(configuration.isPressed ? 0.94 : 1)
+            .brightness(configuration.isPressed ? -0.02 : (isSelected ? 0.012 : 0))
+            .shadow(
+                color: isSelected ? Color.buttonBottom.opacity(configuration.isPressed ? 0.08 : 0.14) : Color.clear,
+                radius: configuration.isPressed ? 8 : 12,
+                x: 0,
+                y: configuration.isPressed ? 4 : 8
+            )
+            .animation(.easeInOut(duration: 0.16), value: configuration.isPressed)
+            .animation(.easeInOut(duration: 0.2), value: isSelected)
+    }
+}
+
+private struct SettingsRowPressButtonStyle: ButtonStyle {
+    let role: SettingsRowRole
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        configuration.isPressed
+                            ? (role == .destructive ? Color.buttonBottom.opacity(0.08) : Color.surfaceElevated.opacity(0.68))
+                            : Color.clear
+                    )
+            )
+            .scaleEffect(configuration.isPressed ? 0.986 : 1)
+            .brightness(configuration.isPressed ? -0.015 : 0)
+            .animation(.easeInOut(duration: 0.14), value: configuration.isPressed)
     }
 }
 
