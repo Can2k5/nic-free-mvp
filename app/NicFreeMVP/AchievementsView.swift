@@ -125,7 +125,7 @@ struct AchievementsView: View {
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.ink)
 
-            Text("Each one reflects a real step forward.")
+            Text("Each one marks a real step forward.")
                 .font(.title3.weight(.medium))
                 .foregroundStyle(Color.secondaryText)
         }
@@ -134,9 +134,9 @@ struct AchievementsView: View {
 
     private var rewardSummaryCard: some View {
         HeroCard(
-            eyebrow: "So far",
+            eyebrow: "Reached so far",
             title: "\(unlockedCount) / \(totalCount)",
-            subtitle: unlockedCount == 0 ? "Your first one will come with time." : "Your progress is starting to feel more visible.",
+            subtitle: unlockedCount == 0 ? "Your first one is closer than it looks." : "Your progress is becoming more visible.",
             icon: "sparkles"
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -289,9 +289,9 @@ struct AchievementsView: View {
                     .foregroundStyle(Color.white)
                     .lineLimit(2)
 
-                        Text("Reached")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(Color.white.opacity(0.84))
+                Text("Reached")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.white.opacity(0.84))
             }
             .padding(18)
             .frame(width: 168, height: 176, alignment: .topLeading)
@@ -712,7 +712,7 @@ struct AchievementsView: View {
     }
 
     private func detailStatusText(for achievement: JourneyAchievement) -> String {
-        achievement.isUnlocked ? "Reached" : "On the way"
+        achievement.isUnlocked ? "Reached" : "In progress"
     }
 
     private func unlockGuidance(for achievement: JourneyAchievement) -> String {
@@ -722,7 +722,7 @@ struct AchievementsView: View {
         case .firstRescue:
             return "Get through one urge and log it."
         case .threeDays:
-            return "Stay with it until you reach day three."
+            return "Keep going until you reach day three."
         case .saver50:
             return "Save your first visible EUR 50."
         case .sevenDays:
@@ -730,7 +730,7 @@ struct AchievementsView: View {
         case .tenRescues:
             return "Get through ten urges over time."
         case .saver100:
-            return "Stay with it until your saved money reaches EUR 100."
+            return "Keep going until your saved money reaches EUR 100."
         case .fourteenDays:
             return "Stay with the plan for two full weeks."
         }
@@ -740,7 +740,7 @@ struct AchievementsView: View {
         if achievement.isUnlocked {
             return "This one is already yours. Small steps like this are how change starts to feel real."
         }
-        return "You are closer than it looks. Each nicotine-free day and each urge you outlast helps this take shape."
+        return "You are closer than it looks. Each nicotine-free day and each urge you outlast moves this forward."
     }
 }
 
