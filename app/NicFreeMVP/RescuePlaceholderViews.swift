@@ -26,9 +26,9 @@ struct CalmDownView: View {
                 VStack(spacing: 22) {
                     if phase == .content {
                         ScreenHeader(
-                            eyebrow: "Calm Down",
+                            eyebrow: "Settle First",
                             title: "Let your body settle first.",
-                            subtitle: "You do not need to solve the craving right now. First, reduce the intensity."
+                            subtitle: "You do not need to figure everything out right now. Start by lowering the intensity."
                         )
                         .softEntrance(delay: 0.02, distance: 10)
 
@@ -100,7 +100,7 @@ struct CalmDownView: View {
                                     currentStep += 1
                                 }
                             } label: {
-                                Text("Next step")
+                                Text("Next")
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 18)
@@ -121,17 +121,17 @@ struct CalmDownView: View {
                         }
                     } else {
                         rescueSuccessCard(
-                            eyebrow: "Calmer Now",
+                            eyebrow: "More Steady",
                             symbol: "wind",
-                            title: "Good. Less intensity means more control.",
-                            subtitle: "The urge may still be here, but it has less power now."
+                            title: "A calmer body gives you more room.",
+                            subtitle: "The urge may still be here, but it does not have the same grip."
                         )
                         .softEntrance(delay: 0.04, distance: 10, animation: MicroAnimation.success, initialScale: 0.985)
 
                         Button {
                             dismiss()
                         } label: {
-                            Text("Back to Rescue Hub")
+                            Text("Back to support")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
@@ -142,7 +142,7 @@ struct CalmDownView: View {
                         NavigationLink {
                             CravingRescueView(selectedTab: $selectedTab)
                         } label: {
-                            Text("Log this craving")
+                            Text("Let this moment count")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.secondaryText)
                         }
@@ -189,9 +189,9 @@ struct RememberWhyView: View {
                 VStack(spacing: 22) {
                     if phase == .content {
                         ScreenHeader(
-                            eyebrow: "Remember Why",
+                            eyebrow: "Your Reason",
                             title: "Come back to what matters.",
-                            subtitle: "You chose this for a reason. Let that reason speak louder than the urge."
+                            subtitle: "You chose this for a reason. Let that reason feel closer than the urge."
                         )
                         .softEntrance(delay: 0.02, distance: 10)
 
@@ -205,16 +205,16 @@ struct RememberWhyView: View {
                             VStack(alignment: .leading, spacing: 16) {
                                 if appState.quitReasons.isEmpty {
                                     VStack(alignment: .leading, spacing: 10) {
-                                        Text("No personal reasons saved yet.")
+                                        Text("Your reasons will show up here.")
                                             .font(.system(size: 28, weight: .bold, design: .rounded))
                                             .foregroundStyle(Color.ink)
 
-                                        Text("Add your reasons in onboarding or settings to make this rescue path more personal.")
+                                        Text("Add one in onboarding or settings, and this space will become more personal.")
                                             .font(.subheadline)
                                             .foregroundStyle(Color.secondaryText)
                                             .lineSpacing(4)
 
-                                        Text("When you add one, it will show up here during craving moments.")
+                                        Text("That way it’s ready when a hard moment hits.")
                                             .font(.footnote.weight(.medium))
                                             .foregroundStyle(Color.secondaryText)
                                     }
@@ -224,7 +224,7 @@ struct RememberWhyView: View {
                                 } else {
                                     if let primaryReason {
                                         VStack(alignment: .leading, spacing: 8) {
-                                            Text("Hold onto this")
+                                            Text("Come back to this")
                                                 .font(.footnote.weight(.semibold))
                                                 .foregroundStyle(Color.heroAccent)
                                                 .textCase(.uppercase)
@@ -235,7 +235,7 @@ struct RememberWhyView: View {
                                                 .foregroundStyle(Color.ink)
                                                 .fixedSize(horizontal: false, vertical: true)
 
-                                            Text("This matters more than what the craving is asking for right now.")
+                                            Text("This matters more than what the urge is asking for right now.")
                                                 .font(.body.weight(.medium))
                                                 .foregroundStyle(Color.secondaryText)
                                                 .lineSpacing(4)
@@ -281,17 +281,17 @@ struct RememberWhyView: View {
                         .buttonStyle(PrimaryButtonStyle())
                     } else {
                         rescueSuccessCard(
-                            eyebrow: "Grounded Again",
+                            eyebrow: "Back With Yourself",
                             symbol: "heart.fill",
                             title: "Your reason is still here.",
-                            subtitle: "This urge is temporary. What matters to you is bigger."
+                            subtitle: "This urge is temporary. What matters to you is still bigger."
                         )
                         .softEntrance(delay: 0.04, distance: 10, animation: MicroAnimation.success, initialScale: 0.985)
 
                         Button {
                             dismiss()
                         } label: {
-                            Text("Back to Rescue Hub")
+                            Text("Back to support")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
@@ -336,25 +336,25 @@ struct ChangeMomentView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 22) {
                     ScreenHeader(
-                        eyebrow: "Change The Moment",
+                        eyebrow: "Shift The Moment",
                         title: "Break the pattern.",
-                        subtitle: "Do one small thing that interrupts the craving loop."
+                        subtitle: "Choose one small action that changes what happens next."
                     )
                     .softEntrance(delay: 0.02, distance: 10)
 
                     if phase == .success {
                         rescueSuccessCard(
-                            eyebrow: "Pattern Interrupted",
+                            eyebrow: "Pattern Shifted",
                             symbol: "bolt.circle.fill",
-                            title: "You interrupted the loop.",
-                            subtitle: "One small action changed the moment."
+                            title: "You changed the moment.",
+                            subtitle: "One small action gave this urge less room."
                         )
                         .softEntrance(delay: 0.06, distance: 10, animation: MicroAnimation.success, initialScale: 0.985)
 
                         Button {
                             dismiss()
                         } label: {
-                            Text("Back to Rescue Hub")
+                            Text("Back to support")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
@@ -364,7 +364,7 @@ struct ChangeMomentView: View {
                     } else if phase == .selected, let selectedAction {
                         CardSection(fill: AnyShapeStyle(Color.surfaceElevated)) {
                             VStack(alignment: .leading, spacing: 16) {
-                                Text("Selected action")
+                                Text("Your next step")
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(Color.heroAccent)
                                     .textCase(.uppercase)
@@ -387,7 +387,7 @@ struct ChangeMomentView: View {
                                 phase = .success
                             }
                         } label: {
-                            Text("Done")
+                                Text("I did it")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
@@ -433,7 +433,7 @@ struct ChangeMomentView: View {
                         }
                         .softEntrance(delay: 0.08, distance: 12)
 
-                        Text("Pick the fastest move that changes what happens next.")
+                        Text("Pick the easiest move that helps this moment go a different way.")
                             .font(.footnote)
                             .foregroundStyle(Color.secondaryText)
                             .multilineTextAlignment(.center)
@@ -451,9 +451,9 @@ struct ChangeMomentView: View {
 
     private var selectionSupportText: String {
         let messages = [
-            "Good. Change the pattern, not just the feeling.",
-            "Small actions can interrupt strong urges.",
-            "This moment does not have to follow the old script."
+            "Good. You do not need a big fix, just a different next step.",
+            "Small actions can soften strong urges.",
+            "This moment does not have to follow the old pattern."
         ]
 
         guard let selectedAction else { return messages[0] }

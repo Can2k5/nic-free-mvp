@@ -73,14 +73,14 @@ struct CravingRescueView: View {
     private var timerContent: some View {
         VStack(spacing: 24) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Wait It Out")
+                Text("Ride It Out")
                     .font(.caption.weight(.semibold))
                     .tracking(1.1)
                     .textCase(.uppercase)
                     .foregroundStyle(Color.secondaryText)
 
                 ConversationalRevealText(
-                    text: "Do not decide right now.",
+                    text: "You do not need to decide right now.",
                     startDelay: 0.18,
                     chunkDelay: 0.95,
                     chunking: .phrases,
@@ -88,7 +88,7 @@ struct CravingRescueView: View {
                 )
 
                 ConversationalRevealText(
-                    text: "Give the urge a moment. Most cravings pass if you do not act immediately.",
+                    text: "Give the urge a little room. Most cravings ease when you do not act on them right away.",
                     startDelay: 0.95,
                     chunkDelay: 1.05,
                     chunking: .sentences,
@@ -154,7 +154,7 @@ struct CravingRescueView: View {
                             .blur(radius: timerActive ? 0.2 : 0.6)
 
                         VStack(spacing: 8) {
-                            Text("90-second hold")
+                            Text("90-second pause")
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(Color.secondaryText)
 
@@ -180,7 +180,7 @@ struct CravingRescueView: View {
 
                     VStack(spacing: 8) {
                         ConversationalRevealText(
-                            text: "The urge feels urgent. It is still temporary.",
+                            text: "This feels urgent. It is still temporary.",
                             startDelay: 0.35,
                             chunkDelay: 0.95,
                             chunking: .sentences,
@@ -195,7 +195,7 @@ struct CravingRescueView: View {
                         )
                         .multilineTextAlignment(.center)
 
-                        Text("This is a wave. Let it crest and pass.")
+                        Text("Let the wave rise, then pass.")
                             .font(.footnote)
                             .foregroundStyle(Color.secondaryText)
                     }
@@ -206,16 +206,16 @@ struct CravingRescueView: View {
             .softEntrance(delay: 0.1, distance: 12)
 
             if !sessionStarted {
-                primaryActionButton(title: "Start the 90 seconds", systemImage: "play.fill") {
+                primaryActionButton(title: "Start the 90-second pause", systemImage: "play.fill") {
                     sessionStarted = true
                     timerActive = true
                 }
 
-                helperText("You are not deciding forever. You are only giving this urge one short window to pass.")
+                helperText("You are not making a forever decision. You are just giving this moment a little space.")
                     .softEntrance(delay: 0.18, distance: 10, animation: MicroAnimation.supportiveReveal)
             } else {
                 primaryActionButton(
-                    title: "I made it",
+                    title: "I’m still with it",
                     systemImage: secondsRemaining > 0 ? "moon.zzz.fill" : "checkmark.circle.fill",
                     isEnabled: secondsRemaining == 0
                 ) {
@@ -227,8 +227,8 @@ struct CravingRescueView: View {
 
                 helperText(
                     secondsRemaining > 0
-                        ? "Stay with the countdown. Every second you do not act weakens the pattern."
-                        : "You made it through the wave."
+                        ? "Stay with the countdown. Each second creates a little more space."
+                        : "You made it through the strongest part."
                 )
                 .softEntrance(delay: 0.1, distance: 10, animation: MicroAnimation.supportiveReveal)
             }
@@ -238,14 +238,14 @@ struct CravingRescueView: View {
     private var successContent: some View {
         VStack(spacing: 22) {
             rescueSuccessCard(
-                eyebrow: "Craving Defeated",
+                eyebrow: "That Counts",
                 symbol: "checkmark.circle.fill",
-                title: "You got through that wave.",
-                subtitle: "That urge did not decide for you."
+                title: "You stayed with it.",
+                subtitle: "That moment eased without taking over."
             )
             .softEntrance(delay: 0.03, distance: 14, animation: MicroAnimation.success, initialScale: 0.97)
 
-            primaryActionButton(title: "Continue to reflection", systemImage: "square.and.pencil") {
+            primaryActionButton(title: "Let this moment count", systemImage: "square.and.pencil") {
                 withAnimation(MicroAnimation.flow) {
                     phase = .reflection
                 }
@@ -258,15 +258,15 @@ struct CravingRescueView: View {
     private var reflectionContent: some View {
         VStack(spacing: 18) {
             ScreenHeader(
-                eyebrow: "Post-Craving",
-                title: "You got through it.",
-                subtitle: "Log this moment so we can understand your patterns."
+                eyebrow: "After The Urge",
+                title: "You stayed with it.",
+                subtitle: "A quick note now helps this feel clearer later."
             )
             .softEntrance(delay: 0.02, distance: 10)
 
             CardSection {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("1. How intense was this craving?")
+                    Text("How strong did it feel?")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(Color.ink)
 
@@ -294,7 +294,7 @@ struct CravingRescueView: View {
 
             CardSection {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("2. What triggered it?")
+                    Text("What seems to have set it off?")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(Color.ink)
 
@@ -321,16 +321,17 @@ struct CravingRescueView: View {
             }
             .softEntrance(delay: 0.16, distance: 12)
 
-            primaryActionButton(title: "Save craving", systemImage: "checkmark.circle.fill", isEnabled: selectedTrigger != nil) {
+            primaryActionButton(title: "Save and keep going", systemImage: "checkmark.circle.fill", isEnabled: selectedTrigger != nil) {
                 guard let selectedTrigger else { return }
                 appState.saveCravingEvent(
                     intensity: selectedIntensity,
                     trigger: selectedTrigger,
                     succeeded: true
                 )
+                OnboardingHaptics.success()
                 appState.showRewardToast(
-                    title: "Great.",
-                    message: "You resisted a craving."
+                    title: "You stayed with it.",
+                    message: "That moment now counts toward the progress you are building."
                 )
                 withAnimation(MicroAnimation.success) {
                     resetFlow()
@@ -339,7 +340,7 @@ struct CravingRescueView: View {
             }
             .softEntrance(delay: 0.22, distance: 10)
 
-            helperText("This adds the event to your local progress history and updates your survived cravings.")
+            helperText("This helps the app learn your patterns and keeps your progress up to date.")
                 .softEntrance(delay: 0.26, distance: 10, animation: MicroAnimation.supportiveReveal)
         }
     }

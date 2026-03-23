@@ -3236,7 +3236,7 @@ struct OnboardingView: View {
             case .success:
                 debugPrint("[Onboarding Paywall] purchase success")
                 appState.showRewardToast(
-                    title: "Ayo Pro unlocked.",
+                    title: "You are all set.",
                     message: "Your subscription is active now."
                 )
                 completeOnboarding()
@@ -3256,8 +3256,8 @@ struct OnboardingView: View {
             case .restored:
                 debugPrint("[Onboarding Paywall] restore success")
                 appState.showRewardToast(
-                    title: "Purchases restored.",
-                    message: "Ayo Pro is active on this device."
+                    title: "You are all set.",
+                    message: "Your subscription is active on this device."
                 )
                 completeOnboarding()
             case .noActiveSubscription:

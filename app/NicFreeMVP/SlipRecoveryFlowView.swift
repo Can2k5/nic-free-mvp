@@ -26,9 +26,9 @@ struct SlipRecoveryFlowView: View {
                         switch step {
                         case .happened:
                             selectionStep(
-                                eyebrow: "Slip Support",
+                                eyebrow: "Reset Support",
                                 title: "What happened?",
-                                subtitle: "A hard moment does not cancel your progress. Let's just understand it.",
+                                subtitle: "One hard moment does not erase your progress. Let’s understand it gently.",
                                 options: SlipType.allCases,
                                 selection: selectedType,
                                 titleForOption: \.title
@@ -43,9 +43,9 @@ struct SlipRecoveryFlowView: View {
 
                         case .trigger:
                             selectionStep(
-                                eyebrow: "Slip Support",
-                                title: "What led to it?",
-                                subtitle: "Naming the moment can help you recover more gently next time.",
+                                eyebrow: "Reset Support",
+                                title: "What led up to it?",
+                                subtitle: "Putting words to the moment can make the next one easier to handle.",
                                 options: SlipTrigger.allCases,
                                 selection: selectedTrigger,
                                 titleForOption: \.title
@@ -60,9 +60,9 @@ struct SlipRecoveryFlowView: View {
 
                         case .recovery:
                             selectionStep(
-                                eyebrow: "Recovery",
-                                title: "How do you want to continue?",
-                                subtitle: "You can keep moving forward from here, or choose a fresh start for your streak.",
+                                eyebrow: "Next Step",
+                                title: "What feels right from here?",
+                                subtitle: "You can keep going from this moment, or start again from today.",
                                 options: SlipRecoveryMode.allCases,
                                 selection: selectedRecoveryMode,
                                 titleForOption: \.title
@@ -205,7 +205,7 @@ struct SlipRecoveryFlowView: View {
                         )
                     )
 
-                    Text("What matters now is the next caring choice you make for yourself.")
+                    Text("What matters now is the next kind choice you make for yourself.")
                         .font(.subheadline)
                         .foregroundStyle(Color.secondaryText)
                         .lineSpacing(4)
@@ -216,7 +216,7 @@ struct SlipRecoveryFlowView: View {
             Button {
                 dismiss()
             } label: {
-                Text("Back to Home")
+                Text("Back to today")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
@@ -230,9 +230,9 @@ struct SlipRecoveryFlowView: View {
     private var supportiveMessage: String {
         switch selectedRecoveryMode {
         case .keepGoing:
-            return "You can keep going from here. One difficult decision does not define the whole quit."
+            return "You can keep going from here. One difficult moment does not define the bigger picture."
         case .resetStreak:
-            return "Starting again is still progress. A reset can be gentle, honest, and full of self-respect."
+            return "Starting again is still progress. A reset can be honest, gentle, and self-respecting."
         case .none:
             return "You are still here, and that matters."
         }
@@ -251,6 +251,12 @@ struct SlipRecoveryFlowView: View {
             type: selectedType,
             trigger: selectedTrigger,
             recoveryMode: selectedRecoveryMode
+        )
+        appState.showRewardToast(
+            title: selectedRecoveryMode == .keepGoing ? "You are still in this." : "You chose an honest reset.",
+            message: selectedRecoveryMode == .keepGoing
+                ? "A hard moment does not undo the care you are taking."
+                : "Starting again gently is still a form of progress."
         )
 
         withAnimation(MicroAnimation.success) {

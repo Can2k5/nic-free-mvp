@@ -34,13 +34,13 @@ struct RootTabView: View {
 
             ProfileView(selectedTab: $selectedTab)
                 .tabItem {
-                    Label("Journey", systemImage: "person.crop.circle")
+                    Label("Progress", systemImage: "person.crop.circle")
                 }
                 .tag(Tab.profile)
 
             AchievementsView()
                 .tabItem {
-                    Label("Achievements", systemImage: "rosette")
+                    Label("Markers", systemImage: "rosette")
                 }
                 .tag(Tab.achievements)
 

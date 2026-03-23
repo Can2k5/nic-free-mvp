@@ -48,22 +48,22 @@ struct CravingInterventionView: View {
         var title: String {
             switch self {
             case .drinkWater:
-                return "Drink water"
+                return "Drink some water"
             case .walkTwoMinutes:
                 return "Walk for 2 minutes"
             case .delayTheUrge:
-                return "Delay the urge"
+                return "Wait five more minutes"
             }
         }
 
         var subtitle: String {
             switch self {
             case .drinkWater:
-                return "Reset the urge with one glass"
+                return "A small reset for your body"
             case .walkTwoMinutes:
-                return "Break the pattern with movement"
+                return "A little movement can shift the moment"
             case .delayTheUrge:
-                return "Give it five more minutes"
+                return "A little space can soften the urge"
             }
         }
 
@@ -136,12 +136,12 @@ struct CravingInterventionView: View {
     private var exerciseContent: some View {
         VStack(spacing: 24) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("You're having a craving")
+                Text("A craving is here")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.ink)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("This usually lasts 2–3 minutes.")
+                Text("You only need to get through this moment.")
                     .font(.title3.weight(.medium))
                     .foregroundStyle(Color.secondaryText)
             }
@@ -192,11 +192,11 @@ struct CravingInterventionView: View {
                     }
 
                     VStack(spacing: 6) {
-                        Text("Cycle \(min(completedCycles + 1, totalCycles)) / \(totalCycles)")
+                        Text("Breath \(min(completedCycles + 1, totalCycles)) of \(totalCycles)")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.ink)
 
-                        Text("Time left: \(formattedTimeLeft)")
+                        Text("About \(formattedTimeLeft) left")
                             .font(.footnote.weight(.medium))
                             .foregroundStyle(Color.secondaryText)
                             .monospacedDigit()
@@ -207,7 +207,7 @@ struct CravingInterventionView: View {
             .softEntrance(delay: 0.08, distance: 12)
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Try instead")
+                Text("A few gentle options")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Color.ink)
 
@@ -234,16 +234,16 @@ struct CravingInterventionView: View {
                         .font(.system(size: 42, weight: .semibold))
                         .foregroundStyle(Color.buttonBottom)
 
-                    Text("Great.")
+                    Text("You stayed with it.")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.ink)
 
-                    Text("You resisted a craving.")
+                    Text("The wave eased without taking over.")
                         .font(.title3.weight(.medium))
                         .foregroundStyle(Color.secondaryText)
                         .multilineTextAlignment(.center)
 
-                    Text("Cravings resisted +1")
+                    Text("That counts")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.buttonBottom)
                         .padding(.horizontal, 16)
@@ -255,7 +255,7 @@ struct CravingInterventionView: View {
             }
             .softEntrance(delay: 0.03, distance: 12, animation: MicroAnimation.success, initialScale: 0.98)
 
-            Button("Back to Home") {
+            Button("Back to today") {
                 dismiss()
             }
             .buttonStyle(PrimaryButtonStyle())
@@ -343,7 +343,7 @@ struct CravingInterventionView: View {
     private func completeIntervention() {
         hasCompletedIntervention = true
         appState.saveCravingEvent(intensity: 2, trigger: .other, succeeded: true)
-        appState.showRewardToast(title: "Great.", message: "You resisted a craving.")
+        appState.showRewardToast(title: "You stayed with it.", message: "That breath-by-breath pause helped this moment soften.")
         OnboardingHaptics.success()
 
         withAnimation(MicroAnimation.success) {

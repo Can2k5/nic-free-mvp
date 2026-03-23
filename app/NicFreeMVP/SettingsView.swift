@@ -38,7 +38,7 @@ struct SettingsView: View {
                 AppBackground()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: Metrics.sectionSpacing) {
+                    VStack(alignment: .leading, spacing: AppSpacing.section) {
                         settingsHeader
                             .softEntrance(delay: 0.02, distance: 10)
 
@@ -52,8 +52,8 @@ struct SettingsView: View {
                             .softEntrance(delay: 0.14, distance: 12)
                     }
                     .padding(.horizontal, Metrics.screenHorizontalPadding)
-                    .padding(.top, Metrics.screenTopPadding)
-                    .padding(.bottom, Metrics.screenBottomPadding)
+                    .padding(.top, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.lg)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -86,49 +86,52 @@ struct SettingsView: View {
     }
 
     private var settingsHeader: some View {
-        VStack(alignment: .leading, spacing: Metrics.heroSpacing) {
-            Text("Settings")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.secondaryText)
-                .textCase(.uppercase)
-                .tracking(1.3)
+        HeroCard(
+            eyebrow: "Settings",
+            title: heroTitle,
+            subtitle: heroSubtitle,
+            badge: heroAccentLabel
+        ) {
+            Text(heroSupportingLine)
+                .font(.subheadline)
+                .foregroundStyle(Color.heroSecondaryText)
 
-            SettingsHeroCard(
-                title: heroTitle,
-                subtitle: heroSubtitle,
-                supportingLine: heroSupportingLine,
-                accentLabel: heroAccentLabel,
-                metrics: heroMetrics
-            )
+            KPIGrid {
+                ForEach(heroMetrics) { metric in
+                    KPIBlock(
+                        value: metric.value,
+                        label: metric.label,
+                        icon: metric.symbol
+                    )
+                }
+            }
         }
-        .padding(.top, Metrics.headerTopPadding)
-        .padding(.bottom, Metrics.headerBottomPadding)
     }
 
     private var heroTitle: String {
         if appState.nicotineFreeDays > 0 {
-            return "\(displayName), your quit is taking shape."
+            return "\(displayName), your progress is taking shape."
         }
-        return "Personalize the space that supports your quit."
+        return "Set up the support you want around you."
     }
 
     private var heroSubtitle: String {
         if appState.nicotineFreeDays > 0 {
-            return "You are \(appState.nicotineFreeDays) \(appState.nicotineFreeDays == 1 ? "day" : "days") nicotine-free. Keep your setup and reasons aligned."
+            return "You are \(appState.nicotineFreeDays) \(appState.nicotineFreeDays == 1 ? "day" : "days") nicotine-free. Keep your setup and reasons close."
         }
-        return "Keep your setup and reasons aligned so support is ready when you need it."
+        return "Keep your setup and reasons ready so support feels easy to reach."
     }
 
     private var heroSupportingLine: String {
         if let highlightedQuitReason = appState.highlightedQuitReason {
-            return "\"\(highlightedQuitReason)\" is ready for rescue moments."
+            return "\"\(highlightedQuitReason)\" is ready when you need grounding."
         }
 
         if !appState.dynamicMotivation.isEmpty {
             return appState.dynamicMotivation
         }
 
-        return "A thoughtful setup makes the rest of the journey feel lighter."
+        return "A thoughtful setup can make hard moments feel a little lighter."
     }
 
     private var heroAccentLabel: String {
@@ -166,144 +169,122 @@ struct SettingsView: View {
     }
 
     private var navigationOverviewSection: some View {
-        SettingsSection(
-            title: "Settings",
-            subtitle: "Open the area you want to review or update."
-        ) {
-            SettingsGroupCard {
-                VStack(spacing: 0) {
-                    NavigationLink {
-                        ProgressSettingsView()
-                    } label: {
-                        SettingsNavigationRow(
-                            title: "Your Progress",
-                            subtitle: "Quit date and daily spend",
-                            icon: "chart.line"
-                        )
-                    }
-                    .buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            Text("Choose what to update")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.ink)
 
-                    SettingsDivider(leadingInset: 56)
-
-                    NavigationLink {
-                        MotivationSettingsView()
-                    } label: {
-                        SettingsNavigationRow(
-                            title: "Your Motivation",
-                            subtitle: "Your personal reasons",
-                            icon: "heart"
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    SettingsDivider(leadingInset: 56)
-
-                    NavigationLink {
-                        AppSettingsView()
-                    } label: {
-                        SettingsNavigationRow(
-                            title: "App Settings",
-                            subtitle: "Appearance and preferences",
-                            icon: "gear"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
+            NavigationLink {
+                ProgressSettingsView()
+            } label: {
+                ActionCard(
+                    title: "Your Progress",
+                    subtitle: "Quit date and daily spend",
+                    icon: "chart.line"
+                )
             }
+            .buttonStyle(CardPressButtonStyle())
+
+            NavigationLink {
+                MotivationSettingsView()
+            } label: {
+                ActionCard(
+                    title: "Your Motivation",
+                    subtitle: "Your personal reasons",
+                    icon: "heart"
+                )
+            }
+            .buttonStyle(CardPressButtonStyle())
+
+            NavigationLink {
+                AppSettingsView()
+            } label: {
+                ActionCard(
+                    title: "App Settings",
+                    subtitle: "Appearance and preferences",
+                    icon: "gear"
+                )
+            }
+            .buttonStyle(CardPressButtonStyle())
         }
     }
 
     private var resetSection: some View {
-        SettingsSection(
-            title: "Data and reset",
-            subtitle: "Use these actions carefully. They affect saved progress and history."
+        InsightCard(
+            title: "Reset options",
+            subtitle: "These actions affect what the app remembers.",
+            icon: "arrow.counterclockwise"
         ) {
-            SettingsGroupCard(
-                fill: AnyShapeStyle(
-                    LinearGradient(
-                        colors: [Color.cardBackground.opacity(0.99), Color.heroTop.opacity(0.14)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                ),
-                cornerRadius: 22,
-                verticalPadding: 6,
-                topHighlightOpacity: 0.1,
-                shadowOpacity: 0.03
-            ) {
-                VStack(spacing: 0) {
-                    SettingsRow(
+            VStack(spacing: AppSpacing.md) {
+                Button {
+                    pendingAction = .resetProgress
+                } label: {
+                    ActionCard(
                         title: "Reset progress",
-                        subtitle: "Reset streak, cravings, slips, and daily check-ins.",
-                        leadingIcon: "arrow.counterclockwise",
-                        role: .destructive,
-                        density: .compact,
-                        showsChevron: true,
-                        action: { pendingAction = .resetProgress }
+                        subtitle: "Start your count again and clear logged moments.",
+                        icon: "arrow.counterclockwise",
+                        showsChevron: false
                     )
-
-                    SettingsDivider(leadingInset: 58)
-
-                    SettingsRow(
-                        title: "Clear craving history",
-                        subtitle: "Remove logged craving events while keeping your quit setup.",
-                        leadingIcon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
-                        role: .destructive,
-                        density: .compact,
-                        showsChevron: true,
-                        action: { pendingAction = .clearCravingHistory }
-                    )
-
-                    SettingsDivider(leadingInset: 58)
-
-                    SettingsRow(
-                        title: "Reset onboarding",
-                        subtitle: "Start onboarding again from the beginning.",
-                        leadingIcon: "sparkles",
-                        density: .compact,
-                        showsChevron: true
-                    ) {
-                        appState.resetOnboardingForDebug()
-                        onboardingManager.reset()
-                    }
                 }
+                .buttonStyle(CardPressButtonStyle())
+
+                Button {
+                    pendingAction = .clearCravingHistory
+                } label: {
+                    ActionCard(
+                        title: "Clear craving history",
+                        subtitle: "Clear logged cravings while keeping your setup.",
+                        icon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+                        showsChevron: false
+                    )
+                }
+                .buttonStyle(CardPressButtonStyle())
+
+                Button {
+                    appState.resetOnboardingForDebug()
+                    onboardingManager.reset()
+                } label: {
+                    ActionCard(
+                        title: "Reset onboarding",
+                        subtitle: "Go through the welcome flow again from the start.",
+                        icon: "sparkles",
+                        showsChevron: false
+                    )
+                }
+                .buttonStyle(CardPressButtonStyle())
             }
         }
     }
 
     private var appInformationSection: some View {
-        SettingsSection(
+        InsightCard(
             title: "App information",
-            subtitle: "Reference details and legal information."
+            subtitle: "A few practical details for the app.",
+            icon: "info.circle"
         ) {
-            VStack(spacing: 10) {
-                SettingsGroupCard(
-                    fill: AnyShapeStyle(
-                        LinearGradient(
-                            colors: [Color.cardBackground.opacity(0.99), Color.mist.opacity(0.12)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    ),
-                    cornerRadius: 20,
-                    verticalPadding: 4,
-                    topHighlightOpacity: 0.08,
-                    shadowOpacity: 0.022
-                ) {
-                    VStack(spacing: 0) {
-                        SettingsInfoRow(title: "App", value: "Nic Free MVP")
-                        SettingsDivider()
-                        SettingsInfoRow(title: "Version", value: appVersionText)
-                    }
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                HStack {
+                    Text("App")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.secondaryText)
+                    Spacer()
+                    Text("Nic Free MVP")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.ink)
                 }
 
-                SettingsGroupCard(cornerRadius: 20, verticalPadding: 4, topHighlightOpacity: 0.08, shadowOpacity: 0.02) {
-                    VStack(spacing: 0) {
-                        SettingsRow(title: "Privacy Policy", density: .compact, showsChevron: true)
-                        SettingsDivider()
-                        SettingsRow(title: "Terms", density: .compact, showsChevron: true)
-                    }
+                HStack {
+                    Text("Version")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.secondaryText)
+                    Spacer()
+                    Text(appVersionText)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.ink)
                 }
+
+                ActionCard(title: "Privacy Policy", icon: "hand.raised", showsChevron: true)
+                ActionCard(title: "Terms", icon: "doc.text", showsChevron: true)
             }
         }
     }
@@ -317,7 +298,7 @@ struct SettingsView: View {
     private var dialogTitle: String {
         switch pendingAction {
         case .resetProgress:
-            return "Reset progress?"
+            return "Start progress again?"
         case .clearCravingHistory:
             return "Clear craving history?"
         case .none:
@@ -328,9 +309,9 @@ struct SettingsView: View {
     private var dialogMessage: String {
         switch pendingAction {
         case .resetProgress:
-            return "This resets your streak and clears saved progress history. Your quit reasons stay in place."
+            return "This starts your count again and clears saved history. Your reasons stay in place."
         case .clearCravingHistory:
-            return "This removes saved craving events but keeps your quit date, reasons, and other settings."
+            return "This removes saved craving events but keeps your quit date, reasons, and settings."
         case .none:
             return ""
         }
@@ -766,7 +747,7 @@ private struct MotivationReasonCard: View {
     var body: some View {
         HStack(alignment: .center, spacing: AppSpacing.md) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Saved reason")
+                Text("Saved for later")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.secondaryText)
                     .textCase(.uppercase)

@@ -136,9 +136,9 @@ enum SlipType: String, CaseIterable, Codable, Identifiable {
 
     var title: String {
         switch self {
-        case .justOnce: return "Just once"
-        case .fullRelapse: return "A full relapse"
-        case .multipleTimesToday: return "Multiple times today"
+        case .justOnce: return "I used once"
+        case .fullRelapse: return "I fully returned to it"
+        case .multipleTimesToday: return "I used a few times today"
         }
     }
 }
@@ -156,11 +156,11 @@ enum SlipTrigger: String, CaseIterable, Codable, Identifiable {
     var title: String {
         switch self {
         case .stress: return "Stress"
-        case .socialSituation: return "Social situation"
+        case .socialSituation: return "Being around others"
         case .alcohol: return "Alcohol"
         case .boredom: return "Boredom"
-        case .cravingTooStrong: return "Craving was too strong"
-        case .other: return "Other"
+        case .cravingTooStrong: return "The urge felt too strong"
+        case .other: return "Something else"
         }
     }
 }
@@ -174,7 +174,7 @@ enum SlipRecoveryMode: String, CaseIterable, Codable, Identifiable {
     var title: String {
         switch self {
         case .keepGoing: return "Keep going from here"
-        case .resetStreak: return "Reset my streak"
+        case .resetStreak: return "Start again from today"
         }
     }
 }
@@ -209,7 +209,11 @@ enum DailyCravingLevel: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
 
     var title: String {
-        rawValue.capitalized
+        switch self {
+        case .low: return "Low"
+        case .medium: return "Medium"
+        case .high: return "High"
+        }
     }
 }
 
@@ -379,26 +383,26 @@ enum JourneyAchievementID: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .firstDay: return "First 24 hours"
-        case .firstRescue: return "First craving resisted"
+        case .firstDay: return "First full day"
+        case .firstRescue: return "First urge outlasted"
         case .threeDays: return "3 steady days"
-        case .saver50: return "Saved EUR 50"
-        case .sevenDays: return "7 day streak"
-        case .tenRescues: return "10 urges survived"
-        case .saver100: return "Saved EUR 100"
-        case .fourteenDays: return "Two week streak"
+        case .saver50: return "EUR 50 kept"
+        case .sevenDays: return "One steady week"
+        case .tenRescues: return "10 urges outlasted"
+        case .saver100: return "EUR 100 kept"
+        case .fourteenDays: return "Two steady weeks"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .firstDay: return "A full nicotine-free day."
-        case .firstRescue: return "You got through an urge."
-        case .threeDays: return "Momentum is forming."
-        case .saver50: return "Your money is staying with you."
-        case .sevenDays: return "A full week of recovery."
-        case .tenRescues: return "You are building resilience."
-        case .saver100: return "Visible financial progress."
+        case .firstDay: return "One full day behind you."
+        case .firstRescue: return "You stayed with the wave and got through it."
+        case .threeDays: return "Your footing is getting steadier."
+        case .saver50: return "That money stayed with you."
+        case .sevenDays: return "A week of quiet progress."
+        case .tenRescues: return "You are learning how to ride urges out."
+        case .saver100: return "A meaningful amount stayed in your pocket."
         case .fourteenDays: return "Two weeks of real change."
         }
     }
@@ -524,7 +528,7 @@ final class AppState: ObservableObject {
             !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
         let unique = Array(NSOrderedSet(array: combined)) as? [String] ?? []
-        let defaults = ["Health", "Family", "Freedom", "Money"]
+        let defaults = ["Health", "Peace of mind", "Freedom", "More money for yourself"]
         return Array((unique.isEmpty ? defaults : unique).prefix(4))
     }
 
@@ -561,15 +565,15 @@ final class AppState: ObservableObject {
 
     var dynamicMotivation: String {
         if nicotineFreeDays < 3 {
-            return "The first days are the hardest. Getting through today matters."
+            return "Early days can feel uneven. Getting through today is enough."
         }
         if cravingsDefeated >= 10 {
-            return "You have already survived many urges. That strength compounds."
+            return "You have already gotten through many urges. That steadiness adds up."
         }
         if nicotineFreeDays >= 7 {
-            return "One week nicotine free. Your body is already recovering."
+            return "A full week in. Your body is already settling into something new."
         }
-        return "Every urge you outlast is evidence that this new rhythm is taking hold."
+        return "Each urge you outlast makes the next caring choice a little easier."
     }
 
     var highlightedQuitReason: String? {
@@ -591,12 +595,12 @@ final class AppState: ObservableObject {
     }
 
     var mostCommonTriggerTitle: String {
-        mostCommonTrigger(in: cravingEvents)?.title ?? "No pattern yet"
+        mostCommonTrigger(in: cravingEvents)?.title ?? "Patterns are still forming"
     }
 
     var mostCommonTimeOfCravingTitle: String {
         let grouped = Dictionary(grouping: cravingEvents, by: \.timeOfDay)
-        return grouped.max(by: { $0.value.count < $1.value.count })?.key.title ?? "No pattern yet"
+        return grouped.max(by: { $0.value.count < $1.value.count })?.key.title ?? "Still getting to know your rhythm"
     }
 
     var averageCravingIntensityThisWeekText: String {
@@ -605,11 +609,11 @@ final class AppState: ObservableObject {
 
     var weeklyCravingsSurvivedText: String {
         let count = weekEvents.filter(\.succeeded).count
-        return count == 0 ? "No data yet" : "\(count)"
+        return count == 0 ? "Log a few moments to see this" : "\(count)"
     }
 
     var strongestTriggerThisWeekText: String {
-        mostCommonTrigger(in: weekEvents)?.title ?? "No data yet"
+        mostCommonTrigger(in: weekEvents)?.title ?? "Log a few moments to see this"
     }
 
     var weeklyAverageIntensityText: String {
@@ -737,7 +741,7 @@ final class AppState: ObservableObject {
     }
 
     private func averageIntensityText(for events: [CravingEvent]) -> String {
-        guard !events.isEmpty else { return "No data yet" }
+        guard !events.isEmpty else { return "Log a few moments to see this" }
         let average = Double(events.reduce(0) { $0 + $1.intensity }) / Double(events.count)
         return String(format: "%.1f / 5", average)
     }
@@ -754,7 +758,7 @@ final class AppState: ObservableObject {
             }
         case .firstRescue:
             return boundedProgress(current: Double(cravingsDefeated), goal: 1) { current in
-                "\(Int(current)) / 1 rescue"
+                "\(Int(current)) / 1 urge"
             }
         case .threeDays:
             return boundedProgress(current: Double(nicotineFreeDays), goal: 3) { current in
@@ -770,7 +774,7 @@ final class AppState: ObservableObject {
             }
         case .tenRescues:
             return boundedProgress(current: Double(cravingsDefeated), goal: 10) { current in
-                "\(Int(current)) / 10 rescues"
+                "\(Int(current)) / 10 urges"
             }
         case .saver100:
             return boundedProgress(current: moneySaved, goal: 100) { current in
@@ -792,7 +796,7 @@ final class AppState: ObservableObject {
         let unlocked = bounded >= goal
         return (
             progress: goal == 0 ? 1 : bounded / goal,
-            progressText: unlocked ? "Unlocked" : valueFormatter(bounded),
+            progressText: unlocked ? "Reached" : valueFormatter(bounded),
             isUnlocked: unlocked
         )
     }

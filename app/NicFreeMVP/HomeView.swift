@@ -12,11 +12,11 @@ struct HomeView: View {
         var title: String {
             switch self {
             case .delayFirstPuff:
-                return "Delay first puff"
+                return "Wait five more minutes"
             case .drinkWater:
-                return "Drink water"
+                return "Drink some water"
             case .deepBreaths:
-                return "Take 3 deep breaths"
+                return "Take 3 slow breaths"
             case .walkTwoMinutes:
                 return "Walk for 2 minutes"
             }
@@ -25,13 +25,13 @@ struct HomeView: View {
         var helperText: String {
             switch self {
             case .delayFirstPuff:
-                return "Wait 5 minutes before smoking"
+                return "A little space can soften the urge"
             case .drinkWater:
-                return "Reset the urge with one glass"
+                return "A small reset for your body"
             case .deepBreaths:
-                return "Slow your body down first"
+                return "Let your body settle first"
             case .walkTwoMinutes:
-                return "Break the pattern with movement"
+                return "A change in motion can change the moment"
             }
         }
 
@@ -60,13 +60,13 @@ struct HomeView: View {
         var title: String {
             switch self {
             case .first24Hours:
-                return "First 24 hours"
+                return "First full day"
             case .firstCravingResisted:
-                return "First craving resisted"
+                return "First urge outlasted"
             case .threeDays:
-                return "3 days nicotine free"
+                return "3 steady days"
             case .sevenDays:
-                return "7 days nicotine free"
+                return "One steady week"
             }
         }
 
@@ -75,11 +75,11 @@ struct HomeView: View {
             case .first24Hours:
                 return "24h"
             case .firstCravingResisted:
-                return "First save"
+                return "First urge"
             case .threeDays:
                 return "3 days"
             case .sevenDays:
-                return "7 days"
+                return "1 week"
             }
         }
     }
@@ -105,34 +105,31 @@ struct HomeView: View {
                 AppBackground()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 18) {
-                        homeHeader
-                            .softEntrance(delay: 0.02, distance: 14)
-
+                    VStack(spacing: AppSpacing.section + 4) {
                         homeHeroSummary
-                            .softEntrance(delay: 0.08, distance: 16, initialScale: 0.97)
-
-                        homeProgressVisual
-                            .softEntrance(delay: 0.13, distance: 16, initialScale: 0.975)
+                            .softEntrance(delay: 0.04, distance: 16, initialScale: 0.97)
+                            .padding(.bottom, AppSpacing.sm)
 
                         homeDailyCheckIn
-                            .softEntrance(delay: 0.17, distance: 16, initialScale: 0.98)
-
-                        homeCravingQuickAction
-                            .softEntrance(delay: 0.21, distance: 16, initialScale: 0.98)
+                            .softEntrance(delay: 0.11, distance: 16, initialScale: 0.98)
 
                         homeTodayFocus
-                            .softEntrance(delay: 0.24, distance: 16, initialScale: 0.98)
+                            .softEntrance(delay: 0.18, distance: 16, initialScale: 0.98)
 
-                        homeMilestonesStrip
-                            .softEntrance(delay: 0.28, distance: 16, initialScale: 0.98)
+                        if shouldShowRescueEntry {
+                            homeCravingQuickAction
+                                .softEntrance(delay: 0.24, distance: 16, initialScale: 0.98)
+                        }
+
+                        homeProgressSnapshot
+                            .softEntrance(delay: 0.29, distance: 16, initialScale: 0.98)
 
                         utilityFooter
-                            .softEntrance(delay: 0.32, distance: 12, initialScale: 0.99)
+                            .softEntrance(delay: 0.34, distance: 12, initialScale: 0.99)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 18)
-                    .padding(.bottom, 32)
+                    .padding(.top, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.lg)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -170,21 +167,14 @@ struct HomeView: View {
 
     private var latestCheckinText: String {
         guard let latest = appState.latestCheckin else {
-            return "No check-in yet today"
+            return "A quick check-in can help steady the day."
         }
 
         if Calendar.current.isDateInToday(latest.date) {
-            return "Checked in today: \(latest.cravingLevel.title)"
+            return checkinReflection(for: latest.cravingLevel)
         }
 
-        return "Latest check-in: \(latest.cravingLevel.title)"
-    }
-
-    private var currentContextLabel: String {
-        let formatter = DateFormatter()
-        formatter.locale = .current
-        formatter.dateFormat = "EEEE, MMM d"
-        return formatter.string(from: .now)
+        return "Your last check-in felt \(latest.cravingLevel.title.lowercased())."
     }
 
     private var emotionalAnchor: String {
@@ -217,17 +207,17 @@ struct HomeView: View {
         let days = appState.nicotineFreeDays
 
         if days < 1 {
-            return ("Next milestone", min(Double(days), 1), "\(days)d", "1 day")
+            return ("Next step", min(Double(days), 1), "\(days)d", "1 day")
         } else if days < 3 {
             let segmentProgress = Double(days - 1) / 2
-            return ("Next milestone", max(0, min(segmentProgress, 1)), "\(days)d", "3 days")
+            return ("Next step", max(0, min(segmentProgress, 1)), "\(days)d", "3 days")
         } else if days < 7 {
             let segmentProgress = Double(days - 3) / 4
-            return ("Next milestone", max(0, min(segmentProgress, 1)), "\(days)d", "7 days")
+            return ("Next step", max(0, min(segmentProgress, 1)), "\(days)d", "7 days")
         } else {
             let span = max(appState.nicotineFreeDays, 7)
             let progress = min(Double(span - 7) / 7, 1)
-            return ("Momentum", progress, "\(span)d", "14 days")
+            return ("Building momentum", progress, "\(span)d", "14 days")
         }
     }
 
@@ -242,193 +232,189 @@ struct HomeView: View {
         }
     }
 
-    private var homeHeader: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Today")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.ink)
-
-                Text(currentContextLabel)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.secondaryText)
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 6) {
-                Text("Smoke-free time")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.heroAccent)
-                    .textCase(.uppercase)
-                    .tracking(1.1)
-
-                Text(appState.smokeFreeTimeText)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(Color.ink)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(Color.surfaceMuted)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.border, lineWidth: 1)
-            )
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 10)
-    }
-
     private var homeHeroSummary: some View {
-        CardSection(
-            fill: AnyShapeStyle(
-                LinearGradient(
-                    colors: [Color.heroTop.opacity(0.98), Color.heroBottom.opacity(0.98)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
+        HeroCard(
+            eyebrow: "Daily dashboard",
+            title: "Day \(max(appState.nicotineFreeDays, 1))",
+            subtitle: "nicotine-free",
+            badge: statusBadgeTitle
         ) {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .top, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Day \(max(appState.nicotineFreeDays, 1))")
-                            .font(.system(size: 42, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.ink)
-
-                        Text("Nicotine-free")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(Color.heroSecondaryText)
-                    }
-
-                    Spacer()
-
-                    Text(statusBadgeTitle)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.heroAccent)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 9)
-                        .background(Color.cardBackground.opacity(0.58))
-                        .clipShape(Capsule())
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                ProgressRing(
+                    progress: progressSummary.progress,
+                    lineWidth: 9,
+                    diameter: 82
+                )
+                .opacity(0.82)
+                .overlay {
+                    Text(progressRingValue)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(Color.ink)
                 }
+                .padding(.bottom, 2)
 
                 Text(emotionalAnchor)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.ink.opacity(0.86))
-                    .lineSpacing(4)
+                    .foregroundStyle(Color.ink.opacity(0.72))
+                    .lineSpacing(3)
+                    .lineLimit(1)
 
-                HStack(spacing: 10) {
-                    HomeMetricPill(
-                        title: "Saved",
-                        value: appState.moneySaved.formatted(.currency(code: currencyCode))
-                    )
-                    HomeMetricPill(
-                        title: "Resisted",
-                        value: "\(appState.cravingsDefeated)"
-                    )
-                    HomeMetricPill(
-                        title: "Avoided",
-                        value: "\(appState.cigarettesAvoided)"
-                    )
-                }
+                Text("\(progressSummary.current) toward \(progressSummary.target)")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.heroSecondaryText.opacity(0.82))
+                    .textCase(.uppercase)
+                    .tracking(0.8)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 
-    private var homeProgressVisual: some View {
-        CardSection {
-            HStack(alignment: .center, spacing: 18) {
-                ProgressRing(
-                    progress: progressSummary.progress,
-                    lineWidth: 10,
-                    diameter: 92
-                )
-                .overlay {
-                    VStack(spacing: 2) {
-                        Text(progressRingValue)
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(Color.ink)
-
-                        Text("days")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.secondaryText)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(progressSummary.title)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(Color.ink)
-
-                        Text("\(progressSummary.current) of \(progressSummary.target)")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.secondaryText)
-                    }
-
-                    WeeklyCheckinStrip(days: weekCheckins)
-
-                    HStack(spacing: 12) {
-                        CompactStat(
-                            label: "This week",
-                            value: appState.weeklyCravingsSurvivedText
-                        )
-                        CompactStat(
-                            label: "Check-in",
-                            value: appState.latestCheckin?.cravingLevel.title ?? "Open"
-                        )
-                    }
-                }
-            }
+    private var shouldShowRescueEntry: Bool {
+        let hasNoCheckinToday = !hasCheckinToday
+        let hasHighCravingToday = appState.latestCheckin?.cravingLevel == .high && hasCheckinToday
+        let hasRecentSlip = appState.slipEvents.contains {
+            Calendar.current.isDate($0.timestamp, inSameDayAs: .now)
         }
+
+        return hasNoCheckinToday || hasHighCravingToday || hasRecentSlip
+    }
+
+    private var hasCheckinToday: Bool {
+        guard let latest = appState.latestCheckin else { return false }
+        return Calendar.current.isDateInToday(latest.date)
+    }
+
+    private var homeProgressSnapshot: some View {
+        InsightCard(
+            title: "Progress snapshot",
+            subtitle: progressSnapshotSubtitle,
+            icon: "chart.bar"
+        ) {
+            HStack(spacing: AppSpacing.md) {
+                CompactStat(
+                    label: "Streak",
+                    value: appState.smokeFreeTimeText,
+                    emphasis: .primary
+                )
+                CompactStat(
+                    label: "Saved",
+                    value: appState.moneySaved.formatted(.currency(code: currencyCode))
+                )
+                CompactStat(
+                    label: "Resisted",
+                    value: "\(appState.cravingsDefeated)"
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var todayCheckInTitle: String {
+        if hasCheckinToday {
+            return "How are cravings today?"
+        }
+        return "How are cravings today?"
+    }
+
+    private func isSelectedCheckinLevel(_ level: DailyCravingLevel) -> Bool {
+        hasCheckinToday && appState.latestCheckin?.cravingLevel == level
+    }
+
+    private func checkinStatusText(for level: DailyCravingLevel) -> String {
+        isSelectedCheckinLevel(level) ? "Selected" : levelDescriptor(for: level)
+    }
+
+    private func checkinButtonBackground(for level: DailyCravingLevel) -> Color {
+        isSelectedCheckinLevel(level) ? Color.buttonBottom.opacity(0.88) : Color.surfaceElevated
+    }
+
+    private func checkinTitleColor(for level: DailyCravingLevel) -> Color {
+        isSelectedCheckinLevel(level) ? Color.white : Color.ink
+    }
+
+    private func checkinSubtitleColor(for level: DailyCravingLevel) -> Color {
+        isSelectedCheckinLevel(level) ? Color.white.opacity(0.82) : Color.secondaryText
+    }
+
+    private var todayFocusActionTitle: String {
+        completedTodayActions.contains(selectedTodayFocus) ? "Done for today ✓" : "Mark as done"
+    }
+
+    private var todayFocusActionBackground: Color {
+        completedTodayActions.contains(selectedTodayFocus) ? Color.accentWash.opacity(0.95) : Color.surfaceElevated
+    }
+
+    private var todayFocusActionStroke: Color {
+        completedTodayActions.contains(selectedTodayFocus) ? Color.heroAccent.opacity(0.28) : Color.border
+    }
+
+    private var todayFocusTitle: String {
+        completedTodayActions.contains(selectedTodayFocus) ? "That step is done" : "Today’s focus"
+    }
+
+    private var todayFocusSubtitle: String {
+        completedTodayActions.contains(selectedTodayFocus)
+            ? "One small win, done."
+            : "One small step that can help today"
     }
 
     private var homeDailyCheckIn: some View {
-        CardSection {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Daily check-in")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(Color.ink)
+        ActionCard(
+            title: todayCheckInTitle,
+            subtitle: latestCheckinText,
+            icon: "waveform.path.ecg",
+            showsChevron: false
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                if hasCheckinToday {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.heroAccent)
 
-                        Text("How strong are cravings today?")
-                            .font(.subheadline)
+                        Text(checkinAffirmation)
+                            .font(.footnote.weight(.medium))
                             .foregroundStyle(Color.secondaryText)
                     }
-
-                    Spacer()
-
-                    Text(latestCheckinText)
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(Color.heroAccent)
-                        .multilineTextAlignment(.trailing)
+                    .transition(.opacity)
                 }
 
                 HStack(spacing: 10) {
-                    ForEach(DailyCravingLevel.allCases) { level in
-                        Button {
-                            appState.saveDailyCheckin(level: level)
-                        } label: {
-                            VStack(spacing: 6) {
-                                Text(level.title)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(appState.latestCheckin?.cravingLevel == level ? Color.white : Color.ink)
+                ForEach(DailyCravingLevel.allCases) { level in
+                    Button {
+                        appState.saveDailyCheckin(level: level)
+                        OnboardingHaptics.light()
+                        appState.showRewardToast(
+                            title: checkinToastTitle(for: level),
+                            message: checkinToastMessage(for: level),
+                            duration: 1.6
+                        )
+                    } label: {
+                        VStack(spacing: 6) {
+                            Text(level.title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(checkinTitleColor(for: level))
 
-                                Text(levelDescriptor(for: level))
-                                    .font(.caption.weight(.medium))
-                                    .foregroundStyle(appState.latestCheckin?.cravingLevel == level ? Color.white.opacity(0.82) : Color.secondaryText)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(appState.latestCheckin?.cravingLevel == level ? Color.buttonBottom : Color.surfaceElevated)
-                            )
+                            Text(checkinStatusText(for: level))
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(checkinSubtitleColor(for: level))
                         }
-                        .buttonStyle(SelectableButtonStyle(isSelected: appState.latestCheckin?.cravingLevel == level))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(checkinButtonBackground(for: level))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(
+                                    isSelectedCheckinLevel(level) ? Color.white.opacity(0.18) : Color.border,
+                                    lineWidth: 1
+                                )
+                        )
                     }
+                    .buttonStyle(SelectableButtonStyle(isSelected: isSelectedCheckinLevel(level)))
+                }
                 }
             }
         }
@@ -438,40 +424,12 @@ struct HomeView: View {
         Button {
             showingCravingView = true
         } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "bolt.heart.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Color.buttonBottom)
-                    .frame(width: 40, height: 40)
-                    .background(Color.cardBackground.opacity(0.72))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Need help now?")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(Color.ink)
-
-                    Text("Open Rescue for a craving reset")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.secondaryText)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.secondaryText)
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.border, lineWidth: 1)
+            ActionCard(
+                title: "Need support right now?",
+                subtitle: "Open rescue and take the next small step",
+                icon: "bolt.heart.fill",
+                emphasizesAction: true
             )
-            .shadow(color: Color.shadowColor.opacity(0.05), radius: 12, x: 0, y: 8)
         }
         .buttonStyle(CardPressButtonStyle())
     }
@@ -480,29 +438,13 @@ struct HomeView: View {
         let action = selectedTodayFocus
         let isCompleted = completedTodayActions.contains(action)
 
-        return CardSection {
+        return ActionCard(
+            title: todayFocusTitle,
+            subtitle: todayFocusSubtitle,
+            icon: isCompleted ? "checkmark.circle.fill" : action.symbol,
+            showsChevron: false
+        ) {
             VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Today focus")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(Color.ink)
-
-                        Text("One small move to keep momentum")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.secondaryText)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: action.symbol)
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(Color.heroAccent)
-                        .frame(width: 38, height: 38)
-                        .background(Color.accentWash.opacity(0.95))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-
                 VStack(alignment: .leading, spacing: 6) {
                     Text(action.title)
                         .font(.headline.weight(.semibold))
@@ -518,9 +460,10 @@ struct HomeView: View {
                         completedTodayActions.remove(action)
                     } else {
                         completedTodayActions.insert(action)
+                        OnboardingHaptics.success()
                         appState.showRewardToast(
-                            title: "Nice",
-                            message: "Small steps beat cravings."
+                            title: "That is one step forward.",
+                            message: todayFocusRewardMessage
                         )
                     }
                 } label: {
@@ -528,48 +471,22 @@ struct HomeView: View {
                         Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
                             .font(.headline.weight(.semibold))
 
-                        Text(isCompleted ? "Marked complete" : "Mark as done")
+                        Text(todayFocusActionTitle)
                             .font(.subheadline.weight(.semibold))
                     }
                     .foregroundStyle(isCompleted ? Color.buttonBottom : Color.ink)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(isCompleted ? Color.accentWash : Color.surfaceElevated)
+                    .background(todayFocusActionBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(isCompleted ? Color.heroAccent.opacity(0.28) : Color.border, lineWidth: 1)
+                            .stroke(todayFocusActionStroke, lineWidth: 1)
                     )
                 }
                 .buttonStyle(CardPressButtonStyle())
             }
         }
-    }
-
-    private var homeMilestonesStrip: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Milestones")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Color.ink)
-
-                Spacer()
-
-                Text("\(Milestone.allCases.filter(isMilestoneUnlocked).count)/\(Milestone.allCases.count)")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.secondaryText)
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(Milestone.allCases) { milestone in
-                        compactMilestoneTile(for: milestone)
-                    }
-                }
-                .padding(.horizontal, 1)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func compactMilestoneTile(for milestone: Milestone) -> some View {
@@ -624,7 +541,7 @@ struct HomeView: View {
             Button {
                 showingSlipFlow = true
             } label: {
-                Text("I slipped")
+                Text("I need to reset")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.secondaryText)
             }
@@ -650,11 +567,11 @@ struct HomeView: View {
 
     private var statusBadgeTitle: String {
         if appState.nicotineFreeDays >= 7 {
-            return "Strong week"
+            return "Building momentum"
         } else if appState.cravingsDefeated >= 1 {
-            return "Building rhythm"
+            return "Keep going"
         } else {
-            return "Fresh start"
+            return "Getting started"
         }
     }
 
@@ -665,12 +582,79 @@ struct HomeView: View {
     private func levelDescriptor(for level: DailyCravingLevel) -> String {
         switch level {
         case .low:
-            return "Steady"
-        case .medium:
             return "Manageable"
+        case .medium:
+            return "Present"
         case .high:
-            return "Heavy"
+            return "Strong"
         }
+    }
+
+    private func checkinReflection(for level: DailyCravingLevel) -> String {
+        switch level {
+        case .low:
+            return "Today feels more manageable."
+        case .medium:
+            return "Today feels present, but manageable."
+        case .high:
+            return "Today feels heavy. Support is close."
+        }
+    }
+
+    private var checkinAffirmation: String {
+        if let latest = appState.latestCheckin?.cravingLevel, hasCheckinToday {
+            switch latest {
+            case .low:
+                return "You checked in and gave yourself a clearer read on today."
+            case .medium:
+                return "You named the moment. That makes the next step easier."
+            case .high:
+                return "You noticed the intensity early. That is a steady move."
+            }
+        }
+        return "You checked in."
+    }
+
+    private func checkinToastTitle(for level: DailyCravingLevel) -> String {
+        switch level {
+        case .low:
+            return "Nice check-in."
+        case .medium:
+            return "You named the moment."
+        case .high:
+            return "You checked in early."
+        }
+    }
+
+    private func checkinToastMessage(for level: DailyCravingLevel) -> String {
+        switch level {
+        case .low:
+            return "A quick note like this helps you stay in touch with your rhythm."
+        case .medium:
+            return "You gave yourself a clearer read on today."
+        case .high:
+            return "Support tends to work better when you catch the moment early."
+        }
+    }
+
+    private var todayFocusRewardMessage: String {
+        if appState.nicotineFreeDays >= 7 {
+            return "Small steady choices are helping this routine stick."
+        }
+        if appState.cravingsDefeated > 0 {
+            return "You are building trust with yourself."
+        }
+        return "Small wins like this are how momentum begins."
+    }
+
+    private var progressSnapshotSubtitle: String {
+        if appState.nicotineFreeDays >= 7 {
+            return "Your steady days are adding up."
+        }
+        if appState.cravingsDefeated > 0 {
+            return "Your recent choices are starting to build momentum."
+        }
+        return "Even small progress counts."
     }
 
     private func isMilestoneUnlocked(_ milestone: Milestone) -> Bool {
@@ -694,8 +678,8 @@ struct HomeView: View {
 
         for milestone in newlyUnlocked {
             appState.showRewardToast(
-                title: "Milestone reached.",
-                message: "Keep going."
+                title: "A step forward.",
+                message: "You’re building momentum."
             )
             animatedMilestones.insert(milestone)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
@@ -712,18 +696,17 @@ private struct HomeMetricPill: View {
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            Text(value)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(Color.ink)
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.heroSecondaryText)
-
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.ink)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
+        .padding(.horizontal, AppSpacing.sm)
+        .padding(.vertical, AppSpacing.sm)
         .background(Color.cardBackground.opacity(0.56))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
@@ -732,16 +715,22 @@ private struct HomeMetricPill: View {
 private struct CompactStat: View {
     let label: String
     let value: String
+    var emphasis: StatEmphasis = .secondary
+
+    enum StatEmphasis {
+        case primary
+        case secondary
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.secondaryText)
+                .foregroundStyle(emphasis == .primary ? Color.heroSecondaryText : Color.secondaryText)
 
             Text(value)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.ink)
+                .font(emphasis == .primary ? .title3.weight(.bold) : .subheadline.weight(.semibold))
+                .foregroundStyle(Color.ink.opacity(emphasis == .primary ? 1 : 0.8))
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

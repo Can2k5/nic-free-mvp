@@ -15,12 +15,12 @@ enum MicroAnimation {
 
 enum AppSpacing {
     static let xs: CGFloat = 8
-    static let sm: CGFloat = 12
+    static let sm: CGFloat = 8
     static let md: CGFloat = 16
-    static let lg: CGFloat = 20
+    static let lg: CGFloat = 24
     static let xl: CGFloat = 24
-    static let xxl: CGFloat = 32
-    static let section: CGFloat = 40
+    static let xxl: CGFloat = 24
+    static let section: CGFloat = 24
 }
 
 private struct SoftEntranceModifier: ViewModifier {
@@ -1020,7 +1020,7 @@ struct PaywallView: View {
             switch await subscriptionManager.purchase(selectedPackage) {
             case .success:
                 appState.showRewardToast(
-                    title: "Ayo Pro unlocked.",
+                    title: "You are all set.",
                     message: "Your subscription is active now."
                 )
                 onPurchaseSuccess?()
@@ -1038,8 +1038,8 @@ struct PaywallView: View {
             switch await subscriptionManager.restorePurchases() {
             case .restored:
                 appState.showRewardToast(
-                    title: "Purchases restored.",
-                    message: "Ayo Pro is active on this device."
+                    title: "You are all set.",
+                    message: "Your subscription is active on this device."
                 )
                 dismissAnimated()
             case .noActiveSubscription, .failed:
@@ -1086,64 +1086,355 @@ struct PaywallView: View {
     }
 }
 
-struct HeroCard: View {
-    let days: Int
+private enum DesignCardRole {
+    case hero
+    case insight
+    case action
+    case neutral
+
+    var fill: AnyShapeStyle {
+        switch self {
+        case .hero:
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color.heroTop.opacity(0.98), Color.heroBottom.opacity(0.98)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+        case .insight:
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color.cardBackground.opacity(0.92), Color.surface.opacity(0.94)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+        case .action:
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color.surfaceElevated.opacity(0.98), Color.cardBackground.opacity(0.98)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+        case .neutral:
+            return AnyShapeStyle(Color.cardBackground)
+        }
+    }
+
+    var stroke: Color {
+        switch self {
+        case .hero:
+            return Color.borderStrong.opacity(0.42)
+        case .insight:
+            return Color.border.opacity(0.85)
+        case .action:
+            return Color.borderStrong.opacity(0.3)
+        case .neutral:
+            return Color.borderStrong.opacity(0.72)
+        }
+    }
+
+    var shadowOpacity: Double {
+        switch self {
+        case .hero:
+            return 0.14
+        case .insight:
+            return 0.06
+        case .action:
+            return 0.09
+        case .neutral:
+            return 0.1
+        }
+    }
+}
+
+private struct DesignSystemCard<Content: View>: View {
+    let role: DesignCardRole
+    var padding: CGFloat = AppSpacing.lg
+    @ViewBuilder let content: Content
 
     var body: some View {
-        CardSection(fill: AnyShapeStyle(
-            LinearGradient(
-                colors: [Color.heroTop, Color.heroBottom],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+        content
+            .padding(padding)
+            .background(role.fill)
+            .overlay(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(role.stroke, lineWidth: 1)
             )
-        )) {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Nicotine-free")
+            .overlay(alignment: .top) {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.16), Color.clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: 28)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .shadow(color: Color.shadowColor.opacity(role.shadowOpacity), radius: 18, x: 0, y: 10)
+    }
+}
+
+struct HeroCard<Content: View>: View {
+    let eyebrow: String
+    let title: String
+    var subtitle: String? = nil
+    var badge: String? = nil
+    var icon: String? = nil
+    var alignment: HorizontalAlignment = .leading
+    @ViewBuilder let content: Content
+
+    init(
+        eyebrow: String,
+        title: String,
+        subtitle: String? = nil,
+        badge: String? = nil,
+        icon: String? = nil,
+        alignment: HorizontalAlignment = .leading,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.eyebrow = eyebrow
+        self.title = title
+        self.subtitle = subtitle
+        self.badge = badge
+        self.icon = icon
+        self.alignment = alignment
+        self.content = content()
+    }
+
+    var body: some View {
+        DesignSystemCard(role: .hero, padding: AppSpacing.lg) {
+            VStack(alignment: alignment, spacing: AppSpacing.md) {
+                HStack(alignment: .top, spacing: AppSpacing.md) {
+                    VStack(alignment: alignment, spacing: AppSpacing.xs) {
+                        Text(eyebrow)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Color.heroSecondaryText)
                             .textCase(.uppercase)
-                            .tracking(1.2)
+                            .tracking(1.1)
 
-                        Text("Your recovery is already in motion.")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.heroSecondaryText.opacity(0.92))
+                        if let subtitle, !subtitle.isEmpty {
+                            Text(subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(Color.heroSecondaryText)
+                        }
                     }
 
-                    Spacer()
+                    Spacer(minLength: 0)
 
-                    Image(systemName: "leaf.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Color.heroAccent)
-                        .padding(12)
-                        .background(Color.cardBackground.opacity(0.56))
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    if let badge {
+                        Text(badge)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.heroAccent)
+                            .padding(.horizontal, AppSpacing.sm)
+                            .padding(.vertical, AppSpacing.xs)
+                            .background(Color.cardBackground.opacity(0.62))
+                            .clipShape(Capsule())
+                    } else if let icon {
+                        Image(systemName: icon)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(Color.heroAccent)
+                            .frame(width: 44, height: 44)
+                            .background(Color.cardBackground.opacity(0.62))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(days)")
-                        .font(.system(size: 76, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.ink)
+                Text(title)
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.ink)
+                    .multilineTextAlignment(alignment == .center ? .center : .leading)
+                    .frame(maxWidth: .infinity, alignment: alignment == .center ? .center : .leading)
 
-                    Text("days strong")
-                        .font(.title3.weight(.medium))
-                        .foregroundStyle(Color.heroSecondaryText)
-                }
-
-                HStack(spacing: 8) {
-                    Image(systemName: "sparkles")
-                        .font(.caption.weight(.bold))
-                    Text("Every calm day is building a new normal.")
-                        .font(.footnote.weight(.medium))
-                }
-                .foregroundStyle(Color.ink.opacity(0.76))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color.cardBackground.opacity(0.56))
-                .clipShape(Capsule())
+                content
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: alignment == .center ? .center : .leading)
+        }
+    }
+}
+
+struct KPIGrid<Content: View>: View {
+    let columns: [GridItem]
+    var spacing: CGFloat = AppSpacing.md
+    @ViewBuilder let content: Content
+
+    init(columns: [GridItem] = [GridItem(.flexible(), spacing: AppSpacing.md), GridItem(.flexible(), spacing: AppSpacing.md)], @ViewBuilder content: () -> Content) {
+        self.columns = columns
+        self.content = content()
+    }
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: spacing) {
+            content
+        }
+    }
+}
+
+struct KPIBlock: View {
+    let value: String
+    let label: String
+    var detail: String? = nil
+    var icon: String? = nil
+
+    var body: some View {
+        DesignSystemCard(role: .neutral, padding: AppSpacing.md) {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.heroAccent)
+                        .frame(width: 30, height: 30)
+                        .background(Color.accentWash.opacity(0.92))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+
+                Text(value)
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.ink)
+                    .minimumScaleFactor(0.8)
+
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+                    .textCase(.uppercase)
+                    .tracking(0.8)
+
+                if let detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(Color.textMuted)
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        }
+    }
+}
+
+struct InsightCard<Content: View>: View {
+    let title: String
+    var subtitle: String? = nil
+    var icon: String? = nil
+    @ViewBuilder let content: Content
+
+    init(title: String, subtitle: String? = nil, icon: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.subtitle = subtitle
+        self.icon = icon
+        self.content = content()
+    }
+
+    var body: some View {
+        DesignSystemCard(role: .insight, padding: AppSpacing.lg) {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                HStack(alignment: .top, spacing: AppSpacing.md) {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text(title)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Color.ink)
+
+                        if let subtitle, !subtitle.isEmpty {
+                            Text(subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(Color.secondaryText)
+                                .lineSpacing(3)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+
+                    if let icon {
+                        Image(systemName: icon)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(Color.buttonBottom)
+                            .frame(width: 40, height: 40)
+                            .background(Color.accentWash.opacity(0.88))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                }
+
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+struct ActionCard<Content: View>: View {
+    let title: String
+    var subtitle: String? = nil
+    var icon: String
+    var emphasizesAction: Bool = false
+    var showsChevron: Bool = true
+    @ViewBuilder let content: Content
+
+    init(
+        title: String,
+        subtitle: String? = nil,
+        icon: String,
+        emphasizesAction: Bool = false,
+        showsChevron: Bool = true,
+        @ViewBuilder content: () -> Content = { EmptyView() }
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.icon = icon
+        self.emphasizesAction = emphasizesAction
+        self.showsChevron = showsChevron
+        self.content = content()
+    }
+
+    var body: some View {
+        DesignSystemCard(role: .action, padding: AppSpacing.lg) {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                HStack(alignment: .top, spacing: AppSpacing.md) {
+                    Image(systemName: icon)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(emphasizesAction ? Color.buttonBottom : Color.heroAccent)
+                        .frame(width: emphasizesAction ? 44 : 40, height: emphasizesAction ? 44 : 40)
+                        .background(
+                            emphasizesAction
+                                ? Color.cardBackground.opacity(0.72)
+                                : Color.accentWash.opacity(0.9)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text(title)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(Color.ink)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if let subtitle, !subtitle.isEmpty {
+                            Text(subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(Color.secondaryText)
+                                .lineSpacing(3)
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(1)
+
+                    Spacer(minLength: 0)
+
+                    if showsChevron {
+                        Image(systemName: "chevron.right")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.secondaryText)
+                            .padding(.top, 2)
+                    }
+                }
+
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -1154,27 +1445,7 @@ struct StatCard: View {
     var symbol: String
 
     var body: some View {
-        CardSection {
-            VStack(alignment: .leading, spacing: 14) {
-                Image(systemName: symbol)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(Color.accentInk)
-                    .frame(width: 38, height: 38)
-                    .background(Color.accentWash)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-                Text(value)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.ink)
-                    .minimumScaleFactor(0.8)
-
-                Text(title)
-                    .font(.footnote)
-                    .foregroundStyle(Color.secondaryText)
-                    .lineSpacing(2)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
+        KPIBlock(value: value, label: title, icon: symbol)
     }
 }
 
@@ -2191,10 +2462,19 @@ struct OnboardingScreenLayout<Content: View>: View {
 
 #Preview {
     VStack(spacing: 16) {
-        HeroCard(days: 12)
-        HStack {
+        HeroCard(
+            eyebrow: "Today",
+            title: "Day 12",
+            subtitle: "nicotine-free",
+            badge: "Finding your rhythm"
+        ) {
+            Text("Every calm day is building a new normal.")
+                .font(.subheadline)
+                .foregroundStyle(Color.heroSecondaryText)
+        }
+        KPIGrid {
             StatCard(title: "Money saved", value: "$102", symbol: "dollarsign")
-            StatCard(title: "Cravings defeated", value: "14", symbol: "bolt.heart")
+            StatCard(title: "Urges outlasted", value: "14", symbol: "bolt.heart")
         }
     }
     .padding()

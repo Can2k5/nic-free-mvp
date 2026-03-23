@@ -41,7 +41,7 @@ struct AchievementsView: View {
                 achievementsBackground
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: AppSpacing.section) {
                         headerSection
                             .softEntrance(delay: 0.02, distance: 12, initialScale: 0.985)
 
@@ -60,8 +60,8 @@ struct AchievementsView: View {
                             .softEntrance(delay: 0.26, distance: 18, initialScale: 0.98)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 24)
-                    .padding(.bottom, 32)
+                    .padding(.top, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.lg)
                 }
                 .blur(radius: selectedAchievement == nil ? 0 : 10)
                 .scaleEffect(selectedAchievement == nil ? 1 : 0.985)
@@ -121,11 +121,11 @@ struct AchievementsView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Achievements")
+            Text("Progress markers")
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.ink)
 
-            Text("Every unlocked badge marks a real shift in your recovery.")
+            Text("Each one reflects a real step forward.")
                 .font(.title3.weight(.medium))
                 .foregroundStyle(Color.secondaryText)
         }
@@ -133,103 +133,58 @@ struct AchievementsView: View {
     }
 
     private var rewardSummaryCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Collected so far")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.84))
-                        .textCase(.uppercase)
-                        .tracking(1.2)
+        HeroCard(
+            eyebrow: "So far",
+            title: "\(unlockedCount) / \(totalCount)",
+            subtitle: unlockedCount == 0 ? "Your first one will come with time." : "Your progress is starting to feel more visible.",
+            icon: "sparkles"
+        ) {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    HStack {
+                        Text("Overall progress")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.heroSecondaryText)
 
-                    Text("\(unlockedCount) / \(totalCount)")
-                        .font(.system(size: 42, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.white)
+                        Spacer()
 
-                    Text(unlockedCount == 0 ? "Your first badge is close." : "Your reward shelf is growing.")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.white.opacity(0.9))
-                }
-
-                Spacer()
-
-                ZStack {
-                    Circle()
-                        .fill(Color.cardBackground.opacity(0.18))
-                        .frame(width: 88, height: 88)
-
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(Color.white)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("Overall progress")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.92))
-
-                    Spacer()
-
-                    Text("\(Int((Double(unlockedCount) / Double(max(totalCount, 1)) * 100).rounded()))%")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(Color.white)
-                }
-
-                GeometryReader { proxy in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.cardBackground.opacity(0.22))
-
-                        Capsule()
-                            .fill(Color.cardBackground)
-                            .frame(width: proxy.size.width * CGFloat(Double(unlockedCount) / Double(max(totalCount, 1))))
+                        Text("\(Int((Double(unlockedCount) / Double(max(totalCount, 1)) * 100).rounded()))%")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Color.ink)
                     }
-                }
-                .frame(height: 12)
-            }
 
-            Button {
-                showingPaywall = true
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "sparkles")
-                        .font(.footnote.weight(.bold))
-                    Text("Unlock full access")
-                        .font(.subheadline.weight(.semibold))
+                    GeometryReader { proxy in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.cardBackground.opacity(0.44))
+
+                            Capsule()
+                                .fill(Color.buttonBottom.opacity(0.8))
+                                .frame(width: proxy.size.width * CGFloat(Double(unlockedCount) / Double(max(totalCount, 1))))
+                        }
+                    }
+                    .frame(height: 12)
                 }
-                .foregroundStyle(Color(red: 0.71, green: 0.36, blue: 0.95))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.white.opacity(0.92))
-                .clipShape(Capsule())
+
+                Button {
+                    showingPaywall = true
+                } label: {
+                    Text("See the full version")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.buttonBottom)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color.cardBackground.opacity(0.84))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(CardPressButtonStyle())
             }
-            .buttonStyle(CardPressButtonStyle())
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.99, green: 0.56, blue: 0.74),
-                    Color(red: 0.71, green: 0.36, blue: 0.95)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.border.opacity(0.7), lineWidth: 1)
-        )
-        .shadow(color: Color(red: 0.71, green: 0.36, blue: 0.95).opacity(0.24), radius: 26, x: 0, y: 16)
     }
 
     private var recentUnlocksSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Recently unlocked")
+            Text("Reached recently")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Color.ink)
 
@@ -248,71 +203,48 @@ struct AchievementsView: View {
         Group {
             if let next = appState.nextJourneyAchievement {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Next to reach")
+                    Text("Coming up next")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(Color.ink)
 
                     Button {
                         openAchievement(next, source: .standalone)
                     } label: {
-                        VStack(alignment: .leading, spacing: 16) {
+                        ActionCard(
+                            title: next.title,
+                            subtitle: next.subtitle,
+                            icon: next.symbol
+                        ) {
                             HStack(spacing: 14) {
-                                badgeIcon(for: next, size: 56)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(next.title)
-                                        .font(.headline.weight(.semibold))
-                                        .foregroundStyle(Color.ink)
-
-                                    Text(next.subtitle)
-                                        .font(.subheadline)
-                                        .foregroundStyle(Color.secondaryText)
-                                }
+                                Text(next.progressText)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Color.ink)
 
                                 Spacer()
+
+                                Text("\(Int((next.progress * 100).rounded()))%")
+                                    .font(.footnote.weight(.bold))
+                                    .foregroundStyle(Color.secondaryText)
                             }
 
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text(next.progressText)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(Color.ink)
+                            GeometryReader { proxy in
+                                ZStack(alignment: .leading) {
+                                    Capsule()
+                                        .fill(Color.surfaceMuted)
 
-                                    Spacer()
-
-                                    Text("\(Int((next.progress * 100).rounded()))%")
-                                        .font(.footnote.weight(.bold))
-                                        .foregroundStyle(Color.secondaryText)
-                                }
-
-                                GeometryReader { proxy in
-                                    ZStack(alignment: .leading) {
-                                        Capsule()
-                                            .fill(Color.surfaceMuted)
-
-                                        Capsule()
-                                            .fill(
-                                                LinearGradient(
-                                                    colors: [next.accentTop, next.accentBottom],
-                                                    startPoint: .leading,
-                                                    endPoint: .trailing
-                                                )
+                                    Capsule()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [next.accentTop, next.accentBottom],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
                                             )
-                                            .frame(width: proxy.size.width * CGFloat(next.progress))
-                                    }
+                                        )
+                                        .frame(width: proxy.size.width * CGFloat(next.progress))
                                 }
-                                .frame(height: 12)
                             }
+                            .frame(height: 12)
                         }
-                        .padding(20)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .stroke(Color.border, lineWidth: 1)
-                        )
-                        .shadow(color: Color.shadowColor.opacity(0.08), radius: 18, x: 0, y: 10)
                     }
                     .buttonStyle(CardPressButtonStyle())
                 }
@@ -322,7 +254,7 @@ struct AchievementsView: View {
 
     private var allAchievementsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("All achievements")
+            Text("All progress markers")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Color.ink)
 
@@ -357,9 +289,9 @@ struct AchievementsView: View {
                     .foregroundStyle(Color.white)
                     .lineLimit(2)
 
-                Text("Unlocked")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.84))
+                        Text("Reached")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.84))
             }
             .padding(18)
             .frame(width: 168, height: 176, alignment: .topLeading)
@@ -394,7 +326,7 @@ struct AchievementsView: View {
                     Spacer()
 
                     if achievement.isUnlocked {
-                        Text("Unlocked")
+                        Text("Reached")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(Color.white)
                             .padding(.horizontal, 10)
@@ -424,7 +356,7 @@ struct AchievementsView: View {
                 Spacer(minLength: 0)
 
                 if achievement.isUnlocked {
-                    Text("Completed")
+                    Text("Reached")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color.white.opacity(0.88))
                 } else {
@@ -523,7 +455,7 @@ struct AchievementsView: View {
                         )
 
                         detailInfoCard(
-                            title: achievement.isUnlocked ? "Unlocked because" : "To unlock this",
+                            title: achievement.isUnlocked ? "Why it matters" : "How to reach this",
                             body: unlockGuidance(for: achievement),
                             achievement: achievement
                         )
@@ -577,7 +509,7 @@ struct AchievementsView: View {
 
                     Spacer(minLength: 0)
 
-                    Text("Swipe down or tap the close button to return.")
+                    Text("Swipe down or close this card to go back.")
                         .font(.footnote.weight(.medium))
                         .foregroundStyle(achievement.isUnlocked ? Color.white.opacity(0.84) : Color.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -780,25 +712,25 @@ struct AchievementsView: View {
     }
 
     private func detailStatusText(for achievement: JourneyAchievement) -> String {
-        achievement.isUnlocked ? "Unlocked" : "In progress"
+        achievement.isUnlocked ? "Reached" : "On the way"
     }
 
     private func unlockGuidance(for achievement: JourneyAchievement) -> String {
         switch achievement.id {
         case .firstDay:
-            return "Stay nicotine-free for your first full day."
+            return "Stay nicotine-free for one full day."
         case .firstRescue:
-            return "Complete one craving rescue successfully."
+            return "Get through one urge and log it."
         case .threeDays:
-            return "Keep your streak moving until you hit day three."
+            return "Stay with it until you reach day three."
         case .saver50:
             return "Save your first visible EUR 50."
         case .sevenDays:
-            return "Reach a full seven-day nicotine-free streak."
+            return "Reach a full nicotine-free week."
         case .tenRescues:
-            return "Resist ten cravings over time."
+            return "Get through ten urges over time."
         case .saver100:
-            return "Keep going until your saved money reaches EUR 100."
+            return "Stay with it until your saved money reaches EUR 100."
         case .fourteenDays:
             return "Stay with the plan for two full weeks."
         }
@@ -806,9 +738,9 @@ struct AchievementsView: View {
 
     private func motivationalDetailText(for achievement: JourneyAchievement) -> String {
         if achievement.isUnlocked {
-            return "This one is already yours. Small wins like this are how the bigger identity shift starts to feel real."
+            return "This one is already yours. Small steps like this are how change starts to feel real."
         }
-        return "You are closer than it looks. Every craving resisted and every clean day is moving this badge toward unlocked."
+        return "You are closer than it looks. Each nicotine-free day and each urge you outlast helps this take shape."
     }
 }
 
