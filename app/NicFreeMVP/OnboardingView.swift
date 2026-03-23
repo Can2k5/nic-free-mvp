@@ -47,6 +47,8 @@ struct OnboardingView: View {
     @State private var breakLoopHoldTask: Task<Void, Never>?
     @State private var costSliderShowsKeypad = false
     @State private var profileQuestionPage = 0
+    @State private var profileSelectedAge = 25
+    @State private var profileSelectedQuitAttempt = "Never"
 
     private let recognitionOptions = [
         "I keep saying “last time”",
@@ -86,7 +88,7 @@ struct OnboardingView: View {
     ]
 
     private let triggerVisualOptions: [(title: String, imageName: String?, imageOnLeading: Bool)] = [
-        ("At night", nil, false),
+        ("At night", "onboarding_trigger_night", false),
         ("When I’m stressed", "onboarding_trigger_stress", true),
         ("When I’m bored", "onboarding_trigger_bored", false),
         ("After eating", "onboarding_trigger_food", true),
@@ -110,6 +112,22 @@ struct OnboardingView: View {
         ("age", "How old are you?", ["Under 18", "18–25", "25+"]),
         ("quit", "Have you tried to quit before?", ["No", "A few times", "Many times"]),
         ("gender", "Which best describes you?", ["Male", "Female", "Other"])
+    ]
+
+    private let profileAgeValues = Array(16...70)
+
+    private let profileGenderOptions = [
+        OnboardingPillOption(title: "Male", value: "Male"),
+        OnboardingPillOption(title: "Female", value: "Female"),
+        OnboardingPillOption(title: "Non-binary", value: "Other"),
+        OnboardingPillOption(title: "Prefer not to say", value: "Other")
+    ]
+
+    private let quitAttemptDisplayOptions = [
+        "Never",
+        "1-2 times",
+        "3-5 times",
+        "Many times"
     ]
 
     private let concernOptions = [
@@ -139,22 +157,29 @@ struct OnboardingView: View {
         onBack: (() -> Void)? = nil,
         onContinue: (() -> Void)? = nil
     ) -> some View {
-        OnboardingActionRow(
+        let normalizedWidth = max(
+            width,
+            min(
+                UIScreen.main.bounds.width - (OnboardingLayout.horizontalPadding * 2),
+                OnboardingLayout.maxContentWidth
+            )
+        )
+
+        return OnboardingActionRow(
             showsBackButton: showsBackButton,
             showsPrimaryButton: showsPrimaryButton,
             backTitle: "back",
             continueTitle: "continue",
             primaryButtonEnabled: primaryButtonEnabled,
-            width: width,
+            width: normalizedWidth,
             horizontalPadding: 0,
-            bottomPadding: max(0, OnboardingActionBarMetrics.bottomInset),
+            bottomPadding: 0,
             spacing: OnboardingActionBarMetrics.spacing,
             onBack: onBack,
             onContinue: onContinue
         )
         .padding(.top, OnboardingActionBarMetrics.topInset)
     }
-
     var body: some View {
         ZStack {
             OnboardingBackgroundView()
@@ -165,7 +190,7 @@ struct OnboardingView: View {
                 .transition(OnboardingPageTransition.transition(forward: navigationDirection == .forward))
         }
         .animation(OnboardingPageTransition.animation, value: onboardingManager.currentStep)
-        .onChange(of: onboardingManager.currentStep) { step in
+        .onChange(of: onboardingManager.currentStep) { _, step in
             debugPrint("[Onboarding] current step changed -> \(stepLabelForDebug(step))")
             feedbackTask?.cancel()
             feedbackMessage = nil
@@ -530,74 +555,82 @@ struct OnboardingView: View {
 
     private var hookContent: some View {
         GeometryReader { proxy in
-            let purple = Color(red: 0.36, green: 0.12, blue: 0.64)
+            let purple = Color.buttonBottom
             let width = proxy.size.width
             let height = proxy.size.height
             let safeTop = proxy.safeAreaInsets.top
             let safeBottom = proxy.safeAreaInsets.bottom
-            let logoTop = safeTop + max(34, height * 0.105)
-            let imageTop = max(38, height * 0.055)
-            let imageWidth = min(width * 0.64, 332)
-            let cardWidth = width - 34
-            let cardBottomPadding = max(18, safeBottom + 10)
+            let logoTop = safeTop + max(30, height * 0.09)
+            let imageTop = max(28, height * 0.038)
+            let imageWidth = min(width * 0.72, 362)
+            let cardWidth = width - 32
+            let cardBottomPadding = max(16, safeBottom + 8)
 
             ZStack {
                 LinearGradient(
                     colors: [
-                        Color.white,
-                        Color(red: 0.985, green: 0.975, blue: 1.0),
-                        Color(red: 0.94, green: 0.87, blue: 1.0)
+                        Color.appBackgroundTop,
+                        Color(red: 0.985, green: 0.972, blue: 1.0),
+                        Color(red: 0.95, green: 0.90, blue: 1.0),
+                        Color.appBackgroundBottom
                     ],
-                    startPoint: .top,
-                    endPoint: .bottom
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
 
                 Circle()
-                    .fill(Color.white.opacity(0.45))
-                    .frame(width: width * 0.92, height: width * 0.92)
-                    .blur(radius: 34)
-                    .offset(y: -height * 0.21)
+                    .fill(Color.white.opacity(0.52))
+                    .frame(width: width * 0.94, height: width * 0.94)
+                    .blur(radius: 42)
+                    .offset(y: -height * 0.22)
+
+                Circle()
+                    .fill(Color.buttonHighlight.opacity(0.16))
+                    .frame(width: width * 0.84, height: width * 0.84)
+                    .blur(radius: 52)
+                    .offset(x: -width * 0.22, y: height * 0.14)
 
                 VStack(spacing: 0) {
                     Text("AYO")
-                        .font(.system(size: 44, weight: .black, design: .rounded))
-                        .tracking(0.4)
+                        .font(.system(size: 48, weight: .black, design: .rounded))
+                        .tracking(0.8)
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [
-                                    Color(red: 0.46, green: 0.14, blue: 0.81),
+                                    Color.buttonTop,
                                     purple
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                                 )
                         )
-                        .rotationEffect(.degrees(-10))
-                        .shadow(color: Color.black.opacity(0.14), radius: 5, x: 0, y: 7)
+                        .rotationEffect(.degrees(-8))
+                        .shadow(color: Color.onboardingShadow.opacity(0.3), radius: 10, x: 0, y: 8)
                         .padding(.top, logoTop)
 
                     Image("onboarding_ashtray")
                         .resizable()
                         .scaledToFit()
                         .frame(width: imageWidth)
-                        .shadow(color: Color.black.opacity(0.16), radius: 20, x: 0, y: 16)
+                        .shadow(color: Color.onboardingShadow.opacity(0.22), radius: 28, x: 0, y: 20)
                         .padding(.top, imageTop)
 
-                    Spacer(minLength: 44)
+                    Spacer(minLength: 28)
 
                     VStack(spacing: 0) {
                         Text("It stops now.")
-                            .font(.system(size: 32, weight: .black, design: .rounded))
+                            .font(.system(size: 34, weight: .black, design: .rounded))
                             .foregroundStyle(purple)
                             .multilineTextAlignment(.center)
+                            .tracking(-0.8)
 
                         Text("You don’t need another attempt.\nYou need a system.")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundStyle(purple.opacity(0.96))
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.secondaryText)
                             .multilineTextAlignment(.center)
-                            .lineSpacing(3)
-                            .padding(.top, 16)
+                            .lineSpacing(4)
+                            .padding(.top, 14)
 
                         Button(action: continueForward) {
                             Text("I’m done")
@@ -606,11 +639,11 @@ struct OnboardingView: View {
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 64)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 30, style: .continuous)
                                         .fill(
                                             LinearGradient(
                                                 colors: [
-                                                    Color(red: 0.42, green: 0.14, blue: 0.74),
+                                                    Color.buttonTop,
                                                     purple
                                                 ],
                                                 startPoint: .topLeading,
@@ -618,25 +651,29 @@ struct OnboardingView: View {
                                                 )
                                         )
                                 )
-                                .shadow(color: purple.opacity(0.22), radius: 12, x: 0, y: 7)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                                )
+                                .shadow(color: Color.onboardingShadow.opacity(0.28), radius: 18, x: 0, y: 10)
                         }
                         .buttonStyle(CardPressButtonStyle())
-                        .padding(.top, 40)
-                        .padding(.horizontal, 96)
+                        .padding(.top, 34)
+                        .padding(.horizontal, 84)
                     }
-                    .padding(.top, 52)
-                    .padding(.bottom, 40)
+                    .padding(.top, 38)
+                    .padding(.bottom, 34)
                     .frame(width: cardWidth)
-                    .frame(minHeight: min(max(height * 0.33, 300), 352))
+                    .frame(minHeight: min(max(height * 0.35, 304), 362))
                     .background(
-                        RoundedRectangle(cornerRadius: 34, style: .continuous)
-                            .fill(Color.white.opacity(0.97))
+                        RoundedRectangle(cornerRadius: 36, style: .continuous)
+                            .fill(Color.onboardingSurfaceElevated.opacity(0.98))
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 34, style: .continuous)
-                            .stroke(Color.white.opacity(0.8), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 36, style: .continuous)
+                            .stroke(Color.borderStrong.opacity(0.72), lineWidth: 1)
                     )
-                    .shadow(color: Color.black.opacity(0.055), radius: 22, x: 0, y: 10)
+                    .shadow(color: Color.onboardingShadow.opacity(0.18), radius: 24, x: 0, y: 12)
                     .padding(.bottom, cardBottomPadding)
                 }
             }
@@ -825,15 +862,15 @@ struct OnboardingView: View {
                 .frame(width: contentWidth, alignment: .leading)
                 .padding(.top, topInset)
 
-                VStack(spacing: 16) {
+                VStack(spacing: 10) {
                     ForEach(recognitionOptions, id: \.self) { option in
                         recognitionOptionCard(title: option)
                             .frame(width: contentWidth)
                     }
                 }
-                .padding(.top, 30)
+                .padding(.top, 20)
 
-                Spacer(minLength: 20)
+                Spacer(minLength: 12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .padding(.horizontal, OnboardingLayout.horizontalPadding)
@@ -858,8 +895,12 @@ struct OnboardingView: View {
     ) -> some View {
         ZStack(alignment: .topTrailing) {
             RoundedRectangle(cornerRadius: 33, style: .continuous)
-                .fill(Color.white.opacity(0.97))
-                .shadow(color: Color.black.opacity(0.05), radius: 16, x: 0, y: 8)
+                .fill(Color.onboardingSurfaceElevated.opacity(0.98))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 33, style: .continuous)
+                        .stroke(Color.borderStrong.opacity(0.68), lineWidth: 1)
+                )
+                .shadow(color: Color.onboardingShadow.opacity(0.12), radius: 18, x: 0, y: 10)
 
             Image(imageName)
                 .resizable()
@@ -873,9 +914,9 @@ struct OnboardingView: View {
 
                 Text(text)
                     .font(.system(size: 18, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.black)
+                    .foregroundStyle(Color.ink)
                     .multilineTextAlignment(.leading)
-                    .lineSpacing(2)
+                    .lineSpacing(3)
                     .padding(.leading, 30)
                     .padding(.trailing, 30)
                     .padding(.bottom, 26)
@@ -896,9 +937,8 @@ struct OnboardingView: View {
     private var nameContent: some View {
         GeometryReader { proxy in
             let safeTop = proxy.safeAreaInsets.top
-            let purple = Color(red: 0.36, green: 0.12, blue: 0.64)
             let contentWidth = onboardingContentWidth(proxy)
-            let fieldHeight: CGFloat = 82
+            let fieldHeight: CGFloat = 86
 
             VStack(spacing: 0) {
                 OnboardingHeaderView(
@@ -911,37 +951,44 @@ struct OnboardingView: View {
                 .padding(.top, onboardingHeaderTop(safeTop))
 
                 VStack(spacing: 0) {
-                    Button {
-                        focusedField = .name
-                    } label: {
-                        HStack(spacing: 0) {
-                            TextField("", text: nameBinding, prompt: Text("Enter your name").foregroundStyle(Color.secondaryText.opacity(0.72)))
-                                .font(.system(size: 27, weight: .semibold, design: .rounded))
-                                .foregroundStyle(Color.ink)
-                                .focused($focusedField, equals: .name)
-                                .textInputAutocapitalization(.words)
-                                .autocorrectionDisabled()
-                                .submitLabel(.done)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .multilineTextAlignment(.leading)
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("We’ll use your name in the plan and support prompts.")
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color.helperText)
+
+                        Button {
+                            focusedField = .name
+                        } label: {
+                            HStack(spacing: 0) {
+                                TextField("", text: nameBinding, prompt: Text("Enter your name").foregroundStyle(Color.secondaryText.opacity(0.72)))
+                                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(Color.ink)
+                                    .focused($focusedField, equals: .name)
+                                    .textInputAutocapitalization(.words)
+                                    .autocorrectionDisabled()
+                                    .submitLabel(.done)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .padding(.horizontal, 28)
+                            .frame(width: contentWidth, height: fieldHeight)
+                            .background(
+                                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                                    .fill(Color.onboardingSurfaceElevated)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                                    .stroke(
+                                        focusedField == .name ? Color.buttonBottom.opacity(0.88) : Color.borderStrong.opacity(0.68),
+                                        lineWidth: focusedField == .name ? 2.2 : 1
+                                    )
+                            )
+                            .shadow(color: Color.onboardingShadow.opacity(focusedField == .name ? 0.18 : 0.1), radius: focusedField == .name ? 18 : 14, x: 0, y: 8)
                         }
-                        .padding(.horizontal, 28)
-                        .frame(width: contentWidth, height: fieldHeight)
-                        .background(
-                            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                                .fill(Color.white.opacity(0.97))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                                .stroke(
-                                    focusedField == .name ? purple : Color.white.opacity(0.88),
-                                    lineWidth: focusedField == .name ? 3 : 1
-                                )
-                        )
-                        .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 8)
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.top, 118)
+                    .frame(width: contentWidth, alignment: .leading)
+                    .padding(.top, 92)
 
                     Spacer(minLength: 0)
                 }
@@ -1014,9 +1061,9 @@ struct OnboardingView: View {
             let safeTop = proxy.safeAreaInsets.top
             let safeBottom = proxy.safeAreaInsets.bottom
             let contentWidth = onboardingContentWidth(proxy, maxWidth: 512)
-            let cardsTopSpacing: CGFloat = 34
-            let cardsSpacing: CGFloat = 14
-            let cardHeight = max(84, min(96, (proxy.size.height - safeTop - safeBottom - 328) / 5))
+            let cardsTopSpacing: CGFloat = 18
+            let cardsSpacing: CGFloat = 10
+            let cardHeight = max(66, min(74, (proxy.size.height - safeTop - safeBottom - 294) / 5))
 
             VStack(spacing: 0) {
                 OnboardingHeaderView(
@@ -1044,7 +1091,7 @@ struct OnboardingView: View {
                 }
                 .padding(.top, cardsTopSpacing)
 
-                Spacer(minLength: 0)
+                Spacer(minLength: 4)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .padding(.horizontal, OnboardingLayout.horizontalPadding)
@@ -1063,7 +1110,7 @@ struct OnboardingView: View {
     private var costSliderContent: some View {
         GeometryReader { proxy in
             let safeTop = proxy.safeAreaInsets.top
-            let purple = Color(red: 0.36, green: 0.12, blue: 0.64)
+            let purple = Color.buttonBottom
             let contentWidth = onboardingContentWidth(proxy)
             let displayCardWidth = min(contentWidth * 0.56, 272)
             let weeklyValue = max(Int(onboardingManager.state.weeklySpending.rounded()), 0)
@@ -1109,12 +1156,27 @@ struct OnboardingView: View {
                     .frame(width: displayCardWidth, height: 148)
                     .background(
                         RoundedRectangle(cornerRadius: 34, style: .continuous)
-                            .fill(Color.white.opacity(0.96))
+                            .fill(Color.onboardingSurfaceElevated)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 34, style: .continuous)
-                            .stroke(purple.opacity(0.78), lineWidth: 5)
+                            .stroke(Color.borderStrong.opacity(0.9), lineWidth: 1.5)
                     )
+                    .overlay(alignment: .topLeading) {
+                        RoundedRectangle(cornerRadius: 34, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.2),
+                                        Color.clear
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+                    }
                     .overlay(alignment: .topTrailing) {
                         Text(costSliderShowsKeypad ? "editing" : "edit")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
@@ -1123,6 +1185,7 @@ struct OnboardingView: View {
                             .padding(.trailing, 16)
                     }
                 }
+                .shadow(color: Color.onboardingShadow.opacity(0.14), radius: 18, x: 0, y: 10)
                 .buttonStyle(PlainButtonStyle())
                 .padding(.horizontal, 22)
 
@@ -1171,8 +1234,8 @@ struct OnboardingView: View {
 
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color.white.opacity(0.97))
-                    .shadow(color: Color.black.opacity(0.05), radius: 12, x: 0, y: 7)
+                    .fill(Color.onboardingSurfaceElevated)
+                    .shadow(color: Color.onboardingShadow.opacity(0.1), radius: 14, x: 0, y: 8)
 
                 Rectangle()
                     .fill(purple)
@@ -1188,7 +1251,7 @@ struct OnboardingView: View {
                     .fill(purple)
                     .frame(width: thumbSize, height: thumbSize)
                     .offset(x: horizontalPadding + thumbOffset)
-                    .shadow(color: purple.opacity(0.14), radius: 8, x: 0, y: 4)
+                    .shadow(color: purple.opacity(0.18), radius: 10, x: 0, y: 5)
             }
             .contentShape(Rectangle())
             .gesture(
@@ -1219,9 +1282,13 @@ struct OnboardingView: View {
         .frame(width: width, height: 58)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white.opacity(0.98))
+                .fill(Color.onboardingSurfaceElevated)
         )
-        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 5)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.borderStrong.opacity(0.62), lineWidth: 1)
+        )
+        .shadow(color: Color.onboardingShadow.opacity(0.08), radius: 10, x: 0, y: 6)
     }
 
     private func costSliderKeypad(width: CGFloat) -> some View {
@@ -1260,7 +1327,7 @@ struct OnboardingView: View {
                                     .frame(height: 70)
                                     .background(
                                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .fill(Color.white.opacity(0.96))
+                                            .fill(Color.onboardingSurfaceElevated)
                                     )
                             }
                             .buttonStyle(CardPressButtonStyle())
@@ -1318,7 +1385,7 @@ struct OnboardingView: View {
         .onAppear {
             startYearlySpendReveal()
         }
-        .onChange(of: onboardingManager.state.weeklySpending) { _ in
+        .onChange(of: onboardingManager.state.weeklySpending) { _, _ in
             startYearlySpendReveal()
         }
     }
@@ -1427,16 +1494,16 @@ struct OnboardingView: View {
         action: @escaping () -> Void
     ) -> some View {
         let titleAlignment: Alignment = imageOnLeading ? .trailing : .leading
-        let leadingPadding: CGFloat = imageOnLeading ? 148 : 30
-        let trailingPadding: CGFloat = imageOnLeading ? 26 : 132
+        let leadingPadding: CGFloat = imageOnLeading ? 116 : 22
+        let trailingPadding: CGFloat = imageOnLeading ? 18 : 104
 
         return FloatingIllustrationOptionCard(
             title: title,
             isSelected: isSelected,
-            height: 92,
-            cornerRadius: 28,
-            titleFont: .system(size: 20, weight: .medium, design: .rounded),
-            selectedTitleFont: .system(size: 20, weight: .bold, design: .rounded),
+            height: 74,
+            cornerRadius: 24,
+            titleFont: .system(size: 18, weight: .medium, design: .rounded),
+            selectedTitleFont: .system(size: 18, weight: .bold, design: .rounded),
             titleAlignment: titleAlignment,
             titleLeadingPadding: leadingPadding,
             titleTrailingPadding: trailingPadding,
@@ -1455,16 +1522,18 @@ struct OnboardingView: View {
     private func triggerCardIllustration(imageName: String) -> some View {
         let width: CGFloat
         switch imageName {
+        case "onboarding_trigger_night":
+            width = 86
         case "onboarding_trigger_stress":
-            width = 118
+            width = 92
         case "onboarding_trigger_bored":
-            width = 106
+            width = 84
         case "onboarding_trigger_food":
-            width = 142
-        case "onboarding_trigger_lonely":
-            width = 124
-        default:
             width = 112
+        case "onboarding_trigger_lonely":
+            width = 94
+        default:
+            width = 88
         }
 
         return Image(imageName)
@@ -1481,112 +1550,48 @@ struct OnboardingView: View {
         guard let imageName else { return .zero }
 
         switch imageName {
+        case "onboarding_trigger_night":
+            return CGSize(width: 0, height: 6)
         case "onboarding_trigger_stress":
-            return CGSize(width: imageOnLeading ? -10 : 0, height: 12)
+            return CGSize(width: imageOnLeading ? -6 : 0, height: 8)
         case "onboarding_trigger_bored":
-            return CGSize(width: imageOnLeading ? 0 : -10, height: 6)
+            return CGSize(width: imageOnLeading ? 0 : -6, height: 2)
         case "onboarding_trigger_food":
-            return CGSize(width: imageOnLeading ? -8 : 0, height: 12)
+            return CGSize(width: imageOnLeading ? -4 : 0, height: 8)
         case "onboarding_trigger_lonely":
-            return CGSize(width: imageOnLeading ? 0 : -6, height: 10)
+            return CGSize(width: imageOnLeading ? 0 : -2, height: 6)
         default:
-            return CGSize(width: 0, height: 8)
+            return CGSize(width: 0, height: 4)
         }
-    }
-
-    private func profileQuestionChip(
-        title: String,
-        isSelected: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        let purple = Color(red: 0.36, green: 0.12, blue: 0.64)
-
-        return Button(action: action) {
-            Text(title)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(isSelected ? Color.white : purple)
-                .frame(maxWidth: .infinity)
-                .frame(height: 108)
-                .background(
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(isSelected ? AnyShapeStyle(
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 0.56, green: 0.35, blue: 0.78),
-                                    purple
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        ) : AnyShapeStyle(Color.white.opacity(0.98)))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .stroke(isSelected ? Color.clear : purple.opacity(0.92), lineWidth: 2)
-                )
-                .shadow(color: Color.black.opacity(0.08), radius: 7, x: 0, y: 5)
-        }
-        .buttonStyle(.plain)
     }
 
     private var profileQuestionsContent: some View {
         GeometryReader { proxy in
             let safeTop = proxy.safeAreaInsets.top
             let contentWidth = onboardingContentWidth(proxy)
-            let currentSection = profileQuestionSections[min(profileQuestionPage, profileQuestionSections.count - 1)]
+            let isBasicProfilePage = profileQuestionPage == 0
 
             VStack(spacing: 0) {
                 OnboardingHeaderView(
                     currentStep: 10,
                     totalSteps: 13,
-                    title: "Let’s get to know you",
-                    subtitle: "This helps us tailor your experience"
+                    title: isBasicProfilePage ? "Let’s personalize your journey" : "How many times have you tried to quit?",
+                    subtitle: isBasicProfilePage
+                        ? "This helps us tailor your experience"
+                        : "This helps us understand how much support you may need."
                 )
                 .frame(width: contentWidth, alignment: .leading)
                 .padding(.top, onboardingHeaderTop(safeTop))
 
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .center, spacing: 12) {
-                        Text(currentSection.title)
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color.black.opacity(0.92))
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Spacer(minLength: 0)
-
-                        Button {
-                            clearProfileQuestionAnswer(for: currentSection.key)
-                            advanceProfileQuestionPage()
-                        } label: {
-                            Text("Skip")
-                                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                .foregroundStyle(Color(red: 0.36, green: 0.12, blue: 0.64).opacity(0.92))
-                                .padding(.horizontal, 15)
-                                .frame(height: 32)
-                                .background(
-                                    Capsule(style: .continuous)
-                                        .fill(Color.white.opacity(0.94))
-                                )
-                        }
-                        .buttonStyle(.plain)
+                Group {
+                    if isBasicProfilePage {
+                        basicProfileContent(width: contentWidth)
+                    } else {
+                        quitAttemptsContent(width: contentWidth)
                     }
-                    .frame(width: contentWidth, alignment: .leading)
-
-                    HStack(spacing: 12) {
-                        ForEach(currentSection.options, id: \.self) { option in
-                            profileQuestionChip(
-                                title: profileQuestionDisplayText(for: option),
-                                isSelected: profileQuestionAnswer(for: currentSection.key) == option
-                            ) {
-                                setProfileQuestionAnswer(option, for: currentSection.key)
-                            }
-                        }
-                    }
-                    .frame(width: contentWidth, alignment: .leading)
-                    .padding(.top, 26)
                 }
-                .padding(.top, 44)
-                .environment(\.defaultMinListRowHeight, 0)
+                .frame(width: contentWidth, alignment: .leading)
+                .padding(.top, 14)
 
                 Spacer(minLength: 0)
             }
@@ -1604,6 +1609,12 @@ struct OnboardingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             syncProfileQuestionPage()
+            profileSelectedAge = profileAge(for: profileQuestionAnswer(for: "age")) ?? 25
+            profileSelectedQuitAttempt = displayQuitAttemptValue(for: profileQuestionAnswer(for: "quit")) ?? "Never"
+
+            if profileQuestionAnswer(for: "age") == nil {
+                setProfileQuestionAnswer(storedAgeBucket(for: profileSelectedAge), for: "age")
+            }
         }
     }
 
@@ -1707,7 +1718,7 @@ struct OnboardingView: View {
             .onAppear {
                 startYearlySpendReveal()
             }
-            .onChange(of: onboardingManager.state.weeklySpending) { _ in
+            .onChange(of: onboardingManager.state.weeklySpending) { _, _ in
                 startYearlySpendReveal()
             }
 
@@ -1924,7 +1935,7 @@ struct OnboardingView: View {
             }
 
             if planRevealVisibleSections >= 2 {
-                CardSection(fill: AnyShapeStyle(Color.white.opacity(0.82))) {
+                CardSection(fill: AnyShapeStyle(Color.onboardingSurfaceElevated.opacity(0.94))) {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("First-year estimate")
                             .font(.headline)
@@ -2033,18 +2044,29 @@ struct OnboardingView: View {
     }
 
     private var paywallContent: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 20) {
             PaywallGlowOrb()
-                .padding(.top, 4)
+                .padding(.top, 10)
 
             CardSection(fill: AnyShapeStyle(
                 LinearGradient(
-                    colors: [Color.white.opacity(0.97), Color(red: 0.95, green: 0.93, blue: 1.0)],
+                    colors: [Color.onboardingSurfaceElevated, Color(red: 0.95, green: 0.93, blue: 1.0)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )) {
                 VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Stay with your plan")
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.ink)
+
+                        Text("Unlock the full support system and keep the momentum you just created.")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color.secondaryText)
+                            .lineSpacing(3)
+                    }
+
                     PaywallBenefitsList(
                         benefits: [
                             PaywallBenefit(icon: "chart.line.uptrend.xyaxis", title: "Track your real progress"),
@@ -2130,7 +2152,7 @@ struct OnboardingView: View {
             } label: {
                 Text("Not now")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.secondaryText)
+                    .foregroundStyle(Color.helperText)
             }
             .buttonStyle(SecondaryButtonStyle())
         }
@@ -2281,34 +2303,35 @@ struct OnboardingView: View {
             HStack(spacing: 14) {
                 Image(systemName: "play.fill")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(isSelected ? purple : Color.black.opacity(0.12))
+                    .foregroundStyle(isSelected ? purple : Color.helperText.opacity(0.85))
                     .frame(width: 22, height: 22)
 
                 Text(title)
-                    .font(.system(size: 15, weight: isSelected ? .bold : .medium, design: .rounded))
-                    .foregroundStyle(isSelected ? Color.black : Color.black.opacity(0.64))
+                    .font(.system(size: 16, weight: isSelected ? .bold : .medium, design: .rounded))
+                    .foregroundStyle(isSelected ? Color.ink : Color.secondaryText)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
-            .padding(.horizontal, 30)
-            .frame(maxWidth: .infinity, minHeight: 76)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 2)
+            .frame(maxWidth: .infinity, minHeight: 70)
             .background(
-                RoundedRectangle(cornerRadius: 30, style: .continuous)
-                    .fill(Color.white.opacity(0.98))
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(isSelected ? Color.onboardingSurfaceInteractive : Color.onboardingSurfaceElevated)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .stroke(
-                        isSelected ? purple : Color.clear,
-                        lineWidth: isSelected ? 5 : 0
+                        isSelected ? purple.opacity(0.86) : Color.borderStrong.opacity(0.62),
+                        lineWidth: isSelected ? 1.8 : 1
                     )
             )
             .shadow(
-                color: Color.black.opacity(isSelected ? 0.17 : 0.12),
-                radius: isSelected ? 9 : 7,
+                color: Color.onboardingShadow.opacity(isSelected ? 0.16 : 0.08),
+                radius: isSelected ? 14 : 10,
                 x: 0,
-                y: isSelected ? 6 : 4
+                y: isSelected ? 8 : 6
             )
         }
         .buttonStyle(.plain)
@@ -2374,6 +2397,10 @@ struct OnboardingView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .background(Color.white.opacity(0.72))
+        .overlay(
+            Capsule()
+                .stroke(Color.borderStrong.opacity(0.64), lineWidth: 1)
+        )
         .clipShape(Capsule())
         .transition(.opacity.combined(with: .offset(y: 8)))
     }
@@ -2553,8 +2580,11 @@ struct OnboardingView: View {
         case .triggerQuestion:
             return onboardingManager.state.triggerQuestion != nil
         case .profileQuestions:
-            let section = profileQuestionSections[min(profileQuestionPage, profileQuestionSections.count - 1)]
-            return profileQuestionAnswer(for: section.key) != nil
+            if profileQuestionPage == 0 {
+                return profileQuestionAnswer(for: "age") != nil
+                    && profileQuestionAnswer(for: "gender") != nil
+            }
+            return profileQuestionAnswer(for: "quit") != nil
         }
     }
 
@@ -2748,15 +2778,21 @@ struct OnboardingView: View {
     }
 
     private func syncProfileQuestionPage() {
-        if let firstUnansweredIndex = profileQuestionSections.firstIndex(where: { profileQuestionAnswer(for: $0.key) == nil }) {
-            profileQuestionPage = firstUnansweredIndex
+        let hasBasicProfile = profileQuestionAnswer(for: "age") != nil
+            && profileQuestionAnswer(for: "gender") != nil
+        let hasQuitAttempts = profileQuestionAnswer(for: "quit") != nil
+
+        if !hasBasicProfile {
+            profileQuestionPage = 0
+        } else if !hasQuitAttempts {
+            profileQuestionPage = 1
         } else {
             profileQuestionPage = 0
         }
     }
 
     private func advanceProfileQuestionPage() {
-        if profileQuestionPage < profileQuestionSections.count - 1 {
+        if profileQuestionPage < 1 {
             withAnimation(OnboardingPageTransition.animation) {
                 profileQuestionPage += 1
             }
@@ -2790,6 +2826,155 @@ struct OnboardingView: View {
             return "other"
         default:
             return option
+        }
+    }
+
+    private var selectedProfileAge: Int {
+        profileAge(for: profileQuestionAnswer(for: "age")) ?? 25
+    }
+
+    private var profileAgeBinding: Binding<Int> {
+        Binding(
+            get: { profileSelectedAge },
+            set: { newValue in
+                profileSelectedAge = newValue
+                setProfileQuestionAnswer(storedAgeBucket(for: newValue), for: "age")
+            }
+        )
+    }
+
+    private var selectedQuitAttemptDisplay: String {
+        profileSelectedQuitAttempt
+    }
+
+    private func basicProfileContent(width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            OnboardingSectionCard(
+                title: "Age",
+                subtitle: "",
+                headerSpacing: 0,
+                contentSpacing: 8
+            ) {
+                OnboardingWheelValuePicker(
+                    title: "Current age",
+                    valueText: "\(profileSelectedAge)",
+                    selection: profileAgeBinding,
+                    values: profileAgeValues,
+                    valueFontSize: 28,
+                    wheelHeight: 82,
+                    verticalPadding: 2
+                )
+            }
+
+            OnboardingSectionCard(
+                title: "Gender",
+                subtitle: "",
+                headerSpacing: 0,
+                contentSpacing: 8
+            ) {
+                OnboardingPillSelector(
+                    options: profileGenderOptions,
+                    selectedValue: profileQuestionAnswer(for: "gender"),
+                    minItemWidth: 132,
+                    itemHeight: 38
+                ) { value in
+                    setProfileQuestionAnswer(value, for: "gender")
+                }
+            }
+        }
+        .frame(width: width, alignment: .leading)
+    }
+
+    private func quitAttemptsContent(width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            OnboardingSectionCard(
+                title: "Quit attempts",
+                subtitle: "",
+                headerSpacing: 4,
+                contentSpacing: 8
+            ) {
+                OnboardingSteppedSlider(
+                    options: quitAttemptDisplayOptions,
+                    title: { $0 },
+                    detail: quitAttemptDetail(for:),
+                    selection: profileSelectedQuitAttempt,
+                    titleFontSize: 22,
+                    labelFontSize: 11,
+                    verticalPadding: 2
+                ) { value in
+                    profileSelectedQuitAttempt = value
+                    setProfileQuestionAnswer(storedQuitAttemptValue(for: value), for: "quit")
+                }
+            }
+        }
+        .frame(width: width, alignment: .leading)
+    }
+
+    private func storedAgeBucket(for age: Int) -> String {
+        if age < 18 {
+            return "Under 18"
+        }
+        if age <= 25 {
+            return "18–25"
+        }
+        return "25+"
+    }
+
+    private func profileAge(for storedValue: String?) -> Int? {
+        switch storedValue {
+        case "Under 18":
+            return 17
+        case "18–25":
+            return 22
+        case "25+":
+            return 30
+        default:
+            return nil
+        }
+    }
+
+    private func storedQuitAttemptValue(for displayValue: String) -> String {
+        switch displayValue {
+        case "Never":
+            return "No"
+        case "1-2 times":
+            return "A few times"
+        case "3-5 times":
+            return "3-5 times"
+        case "Many times":
+            return "Many times"
+        default:
+            return "No"
+        }
+    }
+
+    private func displayQuitAttemptValue(for storedValue: String?) -> String? {
+        switch storedValue {
+        case "No":
+            return "Never"
+        case "A few times":
+            return "1-2 times"
+        case "3-5 times":
+            return "3-5 times"
+        case "Many times":
+            return "Many times"
+        default:
+            return nil
+        }
+    }
+
+    private func quitAttemptDetail(for displayValue: String) -> String {
+        switch displayValue {
+        case "Never":
+            return "You are approaching this for the first time."
+        case "1-2 times":
+            return "You already know some of your friction points."
+        case "3-5 times":
+            return "We should lean more on structure and relapse prevention."
+        case "Many times":
+            return "Consistency and calm support will matter most."
+        default:
+            return ""
         }
     }
 
@@ -2975,7 +3160,7 @@ struct OnboardingView: View {
             return
         }
 
-        if onboardingManager.currentStep == .profileQuestions, profileQuestionPage < profileQuestionSections.count - 1 {
+        if onboardingManager.currentStep == .profileQuestions, profileQuestionPage < 1 {
             navigationDirection = .forward
             withAnimation(OnboardingPageTransition.animation) {
                 profileQuestionPage += 1

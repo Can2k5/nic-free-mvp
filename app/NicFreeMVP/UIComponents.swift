@@ -452,20 +452,39 @@ struct OnboardingBackgroundView: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        Color.white,
-                        Color(red: 0.99, green: 0.97, blue: 1.0),
-                        Color(red: 0.95, green: 0.89, blue: 1.0).opacity(0.92),
-                        Color(red: 0.86, green: 0.75, blue: 0.99).opacity(0.9)
+                        Color.appBackgroundTop,
+                        Color(red: 0.98, green: 0.96, blue: 1.0),
+                        Color(red: 0.95, green: 0.91, blue: 1.0).opacity(0.95),
+                        Color.appBackgroundBottom.opacity(0.98)
                     ],
-                    startPoint: .top,
-                    endPoint: .bottom
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
 
                 Circle()
-                    .fill(Color.white.opacity(0.45))
-                    .frame(width: width * 0.9, height: width * 0.9)
-                    .blur(radius: 36)
-                    .offset(x: width * 0.18, y: -90)
+                    .fill(Color.white.opacity(0.52))
+                    .frame(width: width * 0.92, height: width * 0.92)
+                    .blur(radius: 44)
+                    .offset(x: width * 0.24, y: -90)
+
+                Circle()
+                    .fill(Color.buttonHighlight.opacity(0.2))
+                    .frame(width: width * 0.88, height: width * 0.88)
+                    .blur(radius: 56)
+                    .offset(x: -width * 0.24, y: width * 0.5)
+
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.18),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .blendMode(.screen)
             }
             .ignoresSafeArea()
         }
@@ -511,47 +530,65 @@ struct OnboardingHeaderView: View {
     let title: String
     let subtitle: String
 
-    private let purple = Color(red: 0.36, green: 0.12, blue: 0.64)
+    private let purple = Color.buttonBottom
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(currentStep)/\(totalSteps)")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(purple)
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Text("Step \(currentStep)")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(purple)
+                        .textCase(.uppercase)
+                        .tracking(1.2)
+
+                    Text("of \(totalSteps)")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color.helperText)
+                }
 
                 GeometryReader { barProxy in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.white.opacity(0.72))
+                            .fill(Color.white.opacity(0.48))
 
                         Capsule()
-                            .fill(purple)
-                            .frame(width: max(barProxy.size.width * (CGFloat(currentStep) / CGFloat(max(totalSteps, 1))), 48))
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.buttonTop,
+                                        Color.buttonBottom
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: max(barProxy.size.width * (CGFloat(currentStep) / CGFloat(max(totalSteps, 1))), 54))
+                            .shadow(color: Color.onboardingShadow.opacity(0.24), radius: 10, x: 0, y: 4)
                     }
                 }
-                .frame(height: 6)
+                .frame(height: 7)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: subtitle.isEmpty ? 0 : OnboardingHeaderMetrics.titleToSubtitleSpacing) {
+            VStack(alignment: .leading, spacing: subtitle.isEmpty ? 0 : 8) {
                 Text(title)
-                    .font(.system(size: 31, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.black)
-                    .tracking(-1.2)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.ink)
+                    .tracking(-1.3)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color.black.opacity(0.92))
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color.secondaryText)
+                        .lineSpacing(3)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, OnboardingHeaderMetrics.progressToTitleSpacing)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -664,15 +701,25 @@ struct PaywallPriceCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
-        .padding(.vertical, 22)
+        .padding(.vertical, 24)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.surfaceElevated)
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.onboardingSurfaceElevated,
+                            Color.white.opacity(0.92)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.border, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(Color.borderStrong.opacity(0.9), lineWidth: 1)
         )
+        .shadow(color: Color.onboardingShadow.opacity(0.12), radius: 16, x: 0, y: 8)
     }
 }
 
@@ -1132,14 +1179,29 @@ struct CardSection<Content: View>: View {
 
     var body: some View {
         content
-            .padding(22)
+            .padding(24)
             .background(fill)
-            .shadow(color: Color.shadowColor.opacity(0.06), radius: 14, x: 0, y: 8)
+            .shadow(color: Color.onboardingShadow.opacity(0.1), radius: 20, x: 0, y: 12)
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Color.border, lineWidth: 0.9)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(Color.borderStrong.opacity(0.72), lineWidth: 0.9)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(alignment: .top) {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.24),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: 28)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 }
 
@@ -1374,24 +1436,41 @@ struct OnboardingInputField: View {
         .font(.system(size: 22, weight: .semibold, design: .rounded))
         .foregroundStyle(Color.ink)
         .frame(maxWidth: .infinity, alignment: textAlignment == .leading ? .leading : .center)
-        .background(Color.inputBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.inputBackground)
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(
                     isFocused
-                        ? Color.buttonBottom
-                        : Color.border,
-                    lineWidth: isFocused ? 1.8 : 1.2
+                        ? Color.buttonBottom.opacity(0.92)
+                        : Color.borderStrong.opacity(0.6),
+                    lineWidth: isFocused ? 2.2 : 1
                 )
         )
+        .overlay(alignment: .topLeading) {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(isFocused ? 0.22 : 0.14),
+                            Color.clear
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(height: 24)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
         .shadow(
             color: isFocused
-                ? Color.buttonBottom.opacity(0.18)
-                : Color.shadowColor.opacity(0.07),
-            radius: isFocused ? 18 : 12,
+                ? Color.onboardingShadow.opacity(0.22)
+                : Color.onboardingShadow.opacity(0.08),
+            radius: isFocused ? 22 : 14,
             x: 0,
-            y: isFocused ? 8 : 6
+            y: isFocused ? 10 : 7
         )
         .animation(OnboardingPageTransition.animation, value: isFocused)
     }
@@ -1448,11 +1527,14 @@ struct OnboardingSecondaryButton: View {
 enum OnboardingActionBarMetrics {
     static let horizontalPadding: CGFloat = 24
     static let spacing: CGFloat = 14
-    static let buttonHeight: CGFloat = 62
-    static let cornerRadius: CGFloat = 24
-    static let bottomInset: CGFloat = 0
-    static let topInset: CGFloat = 0
-    static let reservedHeight: CGFloat = buttonHeight + topInset + bottomInset
+    static let buttonHeight: CGFloat = 64
+    static let cornerRadius: CGFloat = 26
+    static let chromeVerticalPadding: CGFloat = 10
+    static let chromeHorizontalPadding: CGFloat = 10
+    static let chromeHeight: CGFloat = buttonHeight + (chromeVerticalPadding * 2)
+    static let bottomInset: CGFloat = 6
+    static let topInset: CGFloat = 8
+    static let reservedHeight: CGFloat = chromeHeight + topInset + bottomInset
 }
 
 struct OnboardingActionRow: View {
@@ -1471,9 +1553,12 @@ struct OnboardingActionRow: View {
     var body: some View {
         Group {
             if let width {
-                row.frame(width: width)
+                row
+                    .frame(width: width, height: OnboardingActionBarMetrics.chromeHeight, alignment: .bottom)
             } else {
-                row.frame(maxWidth: .infinity)
+                row
+                    .frame(maxWidth: .infinity)
+                    .frame(height: OnboardingActionBarMetrics.chromeHeight, alignment: .bottom)
             }
         }
         .padding(.horizontal, horizontalPadding)
@@ -1497,6 +1582,17 @@ struct OnboardingActionRow: View {
                 )
             }
         }
+        .padding(.horizontal, OnboardingActionBarMetrics.chromeHorizontalPadding)
+        .padding(.vertical, OnboardingActionBarMetrics.chromeVerticalPadding)
+        .background(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(Color.onboardingSurface.opacity(0.92))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(Color.borderStrong.opacity(0.8), lineWidth: 1)
+        )
+        .shadow(color: Color.onboardingShadow.opacity(0.12), radius: 18, x: 0, y: 10)
     }
 }
 
@@ -1511,8 +1607,8 @@ private struct OnboardingPrimaryButtonStyle: SwiftUI.ButtonStyle {
                         LinearGradient(
                             colors: isEnabled
                                 ? [
-                                    Color(red: 0.43, green: 0.16, blue: 0.75),
-                                    Color(red: 0.36, green: 0.12, blue: 0.64)
+                                    Color.buttonTop,
+                                    Color.buttonBottom
                                 ]
                                 : [
                                     Color(red: 0.75, green: 0.66, blue: 0.95),
@@ -1525,15 +1621,30 @@ private struct OnboardingPrimaryButtonStyle: SwiftUI.ButtonStyle {
             }
             .overlay(
                 RoundedRectangle(cornerRadius: OnboardingActionBarMetrics.cornerRadius, style: .continuous)
-                    .stroke(Color.white.opacity(isEnabled ? 0.06 : 0), lineWidth: 1)
+                    .stroke(Color.white.opacity(isEnabled ? 0.16 : 0), lineWidth: 1)
             )
+            .overlay(alignment: .top) {
+                RoundedRectangle(cornerRadius: OnboardingActionBarMetrics.cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(isEnabled ? 0.22 : 0.08),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: 24)
+                    .clipShape(RoundedRectangle(cornerRadius: OnboardingActionBarMetrics.cornerRadius, style: .continuous))
+            }
             .shadow(
                 color: isEnabled
-                    ? Color.black.opacity(configuration.isPressed ? 0.04 : 0.08)
+                    ? Color.onboardingShadow.opacity(configuration.isPressed ? 0.14 : 0.24)
                     : .clear,
-                radius: configuration.isPressed ? 8 : 12,
+                radius: configuration.isPressed ? 10 : 18,
                 x: 0,
-                y: configuration.isPressed ? 4 : 7
+                y: configuration.isPressed ? 5 : 10
             )
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .animation(Animation.spring(duration: 0.12, bounce: 0.2), value: configuration.isPressed)
@@ -1551,7 +1662,7 @@ private struct OnboardingSecondaryButtonStyle: SwiftUI.ButtonStyle {
                         LinearGradient(
                             colors: isEnabled
                                 ? [
-                                    Color.white.opacity(0.98),
+                                    Color.onboardingSurfaceElevated,
                                     Color.white.opacity(0.92)
                                 ]
                                 : [
@@ -1567,18 +1678,18 @@ private struct OnboardingSecondaryButtonStyle: SwiftUI.ButtonStyle {
                 RoundedRectangle(cornerRadius: OnboardingActionBarMetrics.cornerRadius, style: .continuous)
                     .stroke(
                         isEnabled
-                            ? Color.white.opacity(0.72)
+                            ? Color.borderStrong.opacity(0.72)
                             : Color.border.opacity(0.5),
                         lineWidth: 1
                     )
             )
             .shadow(
                 color: isEnabled
-                    ? Color.black.opacity(configuration.isPressed ? 0.04 : 0.08)
+                    ? Color.onboardingShadow.opacity(configuration.isPressed ? 0.08 : 0.12)
                     : .clear,
-                radius: configuration.isPressed ? 8 : 12,
+                radius: configuration.isPressed ? 8 : 14,
                 x: 0,
-                y: configuration.isPressed ? 4 : 7
+                y: configuration.isPressed ? 4 : 8
             )
             .brightness(configuration.isPressed ? -0.01 : 0)
             .opacity(isEnabled ? (configuration.isPressed ? 0.98 : 1) : 0.66)
@@ -1634,13 +1745,13 @@ struct SelectionCard: View {
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.headline)
-                    .foregroundStyle(isSelected ? Color.white : Color.secondaryText.opacity(0.65))
-                    .opacity(isSelected ? 1 : 0)
-                    .scaleEffect(isSelected ? 1 : 0.85)
+                    .foregroundStyle(isSelected ? Color.white : Color.helperText.opacity(0.8))
+                    .opacity(isSelected ? 1 : 0.85)
+                    .scaleEffect(isSelected ? 1 : 0.9)
                     .animation(.easeInOut(duration: 0.15), value: isSelected)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 15)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 17)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(
@@ -1655,22 +1766,30 @@ struct SelectionCard: View {
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            : AnyShapeStyle(Color.surface)
+                            : AnyShapeStyle(Color.onboardingSurfaceElevated)
                     )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .stroke(
                         isSelected
-                            ? Color.buttonBottom
-                            : Color.border,
-                        lineWidth: isSelected ? 1.5 : 1
+                            ? Color.buttonHighlight.opacity(0.52)
+                            : Color.borderStrong.opacity(0.62),
+                        lineWidth: isSelected ? 1.4 : 1
                     )
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.buttonTop.opacity(isSelected ? 0.12 : 0), lineWidth: 3)
-                    .blur(radius: 4)
+                    .fill(
+                        LinearGradient(
+                            colors: isSelected
+                                ? [Color.white.opacity(0.18), Color.clear]
+                                : [Color.white.opacity(0.1), Color.clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
             .scaleEffect(isSelected ? 1.008 : 1)
             .animation(.easeInOut(duration: 0.15), value: isSelected)
@@ -1704,19 +1823,34 @@ struct FloatingIllustrationOptionCard<Illustration: View>: View {
         Button(action: action) {
             ZStack {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.white.opacity(0.985))
+                    .fill(isSelected ? Color.onboardingSurfaceInteractive : Color.onboardingSurfaceElevated)
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .stroke(
-                                isSelected ? purple : Color.clear,
-                                lineWidth: isSelected ? 4.5 : 0
+                                isSelected ? Color.buttonBottom.opacity(0.82) : Color.borderStrong.opacity(0.64),
+                                lineWidth: isSelected ? 2.2 : 1
                             )
                     )
-                    .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 7)
+                    .overlay(alignment: .top) {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(isSelected ? 0.28 : 0.16),
+                                        Color.clear
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(height: height * 0.42)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                    }
+                    .shadow(color: Color.onboardingShadow.opacity(isSelected ? 0.18 : 0.1), radius: isSelected ? 18 : 12, x: 0, y: isSelected ? 10 : 7)
 
                 Text(title)
                     .font(isSelected ? selectedTitleFont : titleFont)
-                    .foregroundStyle(isSelected ? selectedTitleColor : unselectedTitleColor)
+                    .foregroundStyle(isSelected ? Color.ink : Color.secondaryText)
                     .multilineTextAlignment(titleAlignment == .trailing ? .trailing : .leading)
                     .frame(maxWidth: .infinity, alignment: titleAlignment)
                     .padding(.leading, titleLeadingPadding)
@@ -1730,6 +1864,214 @@ struct FloatingIllustrationOptionCard<Illustration: View>: View {
             .frame(height: height)
         }
         .buttonStyle(OnboardingSelectionCardPressStyle())
+    }
+}
+
+struct OnboardingSectionCard<Content: View>: View {
+    let title: String
+    let subtitle: String
+    var headerSpacing: CGFloat = 6
+    var contentSpacing: CGFloat = 18
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        CardSection(fill: AnyShapeStyle(Color.onboardingSurface.opacity(0.98))) {
+            VStack(alignment: .leading, spacing: contentSpacing) {
+                VStack(alignment: .leading, spacing: headerSpacing) {
+                    Text(title)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color.ink)
+
+                    Text(subtitle)
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color.helperText)
+                        .lineSpacing(2)
+                }
+
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+struct OnboardingPillOption: Identifiable, Hashable {
+    let id = UUID()
+    let title: String
+    let value: String
+}
+
+struct OnboardingPillSelector: View {
+    let options: [OnboardingPillOption]
+    let selectedValue: String?
+    var minItemWidth: CGFloat = 140
+    var itemHeight: CGFloat = 48
+    let action: (String) -> Void
+
+    @ViewBuilder
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: minItemWidth), spacing: 10)], alignment: .leading, spacing: 10) {
+            ForEach(options) { option in
+                let isSelected = selectedValue == option.value
+
+                Button {
+                    OnboardingHaptics.soft()
+                    action(option.value)
+                } label: {
+                    Text(option.title)
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(isSelected ? Color.white : Color.secondaryText)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: itemHeight)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(
+                                    isSelected
+                                        ? AnyShapeStyle(
+                                            LinearGradient(
+                                                colors: [Color.buttonTop, Color.buttonBottom],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        : AnyShapeStyle(Color.onboardingSurfaceElevated)
+                                )
+                        )
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .stroke(
+                                    isSelected ? Color.buttonHighlight.opacity(0.6) : Color.borderStrong.opacity(0.62),
+                                    lineWidth: 1
+                                )
+                        )
+                        .shadow(color: isSelected ? Color.onboardingShadow.opacity(0.18) : .clear, radius: 14, x: 0, y: 8)
+                }
+                .buttonStyle(OnboardingSelectionCardPressStyle())
+            }
+        }
+    }
+}
+
+struct OnboardingWheelValuePicker: View {
+    let title: String
+    let valueText: String
+    let selection: Binding<Int>
+    let values: [Int]
+    var valueFontSize: CGFloat = 34
+    var wheelHeight: CGFloat = 140
+    var verticalPadding: CGFloat = 6
+
+    @ViewBuilder
+    var body: some View {
+        VStack(spacing: 14) {
+            VStack(spacing: 2) {
+                Text(valueText)
+                    .font(.system(size: valueFontSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.ink)
+                    .monospacedDigit()
+
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.helperText)
+                    .textCase(.uppercase)
+                    .tracking(1.1)
+            }
+            .frame(maxWidth: .infinity)
+
+            Picker(title, selection: selection) {
+                ForEach(values, id: \.self) { value in
+                    Text("\(value)")
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                        .tag(value)
+                }
+            }
+            .pickerStyle(.wheel)
+            .frame(height: wheelHeight)
+            .clipped()
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, verticalPadding)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.onboardingSurfaceElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.borderStrong.opacity(0.62), lineWidth: 1)
+        )
+    }
+}
+
+struct OnboardingSteppedSlider<Option: Hashable>: View {
+    let options: [Option]
+    let title: (Option) -> String
+    let detail: (Option) -> String
+    let selection: Option
+    var titleFontSize: CGFloat = 28
+    var labelFontSize: CGFloat = 12
+    var verticalPadding: CGFloat = 10
+    let action: (Option) -> Void
+
+    private func index(for option: Option) -> Int {
+        options.firstIndex(of: option) ?? 0
+    }
+
+    @ViewBuilder
+    var body: some View {
+        let selectedIndex = index(for: selection)
+
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title(selection))
+                    .font(.system(size: titleFontSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.ink)
+
+                Text(detail(selection))
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.helperText)
+            }
+
+            HStack(spacing: 0) {
+                ForEach(Array(options.enumerated()), id: \.offset) { item in
+                    let index = item.offset
+                    let option = item.element
+
+                    Button {
+                        OnboardingHaptics.soft()
+                        action(option)
+                    } label: {
+                        VStack(spacing: 10) {
+                            Circle()
+                                .fill(index <= selectedIndex ? Color.buttonBottom : Color.white.opacity(0.16))
+                                .frame(width: 14, height: 14)
+                                .overlay(
+                                    Circle()
+                                        .stroke(index == selectedIndex ? Color.buttonHighlight : Color.borderStrong.opacity(0.5), lineWidth: index == selectedIndex ? 4 : 1)
+                                )
+
+                            Text(title(option))
+                                .font(.system(size: labelFontSize, weight: index == selectedIndex ? .bold : .semibold, design: .rounded))
+                                .foregroundStyle(index == selectedIndex ? Color.ink : Color.helperText)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+
+                    if index < options.count - 1 {
+                        Rectangle()
+                            .fill(index < selectedIndex ? Color.buttonBottom.opacity(0.9) : Color.borderStrong.opacity(0.4))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 2)
+                            .offset(y: -14)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, verticalPadding)
     }
 }
 

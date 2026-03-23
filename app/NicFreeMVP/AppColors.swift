@@ -15,12 +15,12 @@ extension Color {
     }
 
     static let appBackgroundTop = dynamic(
-        light: rgb(250, 247, 242),
+        light: rgb(251, 248, 245),
         dark: rgb(18, 22, 31)
     )
 
     static let appBackgroundBottom = dynamic(
-        light: rgb(237, 242, 247),
+        light: rgb(235, 230, 245),
         dark: rgb(12, 17, 24)
     )
 
@@ -30,17 +30,17 @@ extension Color {
     )
 
     static let cardBackground = dynamic(
-        light: rgb(255, 255, 255, 0.9),
+        light: rgb(255, 252, 255, 0.92),
         dark: rgb(34, 40, 54, 0.94)
     )
 
     static let surface = dynamic(
-        light: rgb(255, 255, 255, 0.82),
+        light: rgb(255, 252, 255, 0.84),
         dark: rgb(32, 38, 52, 0.9)
     )
 
     static let surfaceElevated = dynamic(
-        light: rgb(255, 255, 255, 0.92),
+        light: rgb(255, 253, 255, 0.95),
         dark: rgb(40, 47, 63, 0.96)
     )
 
@@ -55,13 +55,33 @@ extension Color {
     )
 
     static let inputBackground = dynamic(
-        light: rgb(255, 255, 255, 0.94),
+        light: rgb(255, 253, 255, 0.97),
         dark: rgb(30, 36, 48, 0.98)
+    )
+
+    static let onboardingSurface = dynamic(
+        light: rgb(255, 252, 255, 0.86),
+        dark: rgb(36, 41, 56, 0.92)
+    )
+
+    static let onboardingSurfaceElevated = dynamic(
+        light: rgb(255, 254, 255, 0.96),
+        dark: rgb(42, 48, 64, 0.97)
+    )
+
+    static let onboardingSurfaceInteractive = dynamic(
+        light: rgb(247, 239, 255, 0.98),
+        dark: rgb(66, 55, 108, 0.92)
     )
 
     static let border = dynamic(
         light: rgb(255, 255, 255, 0.46),
         dark: rgb(128, 141, 168, 0.4)
+    )
+
+    static let borderStrong = dynamic(
+        light: rgb(160, 130, 229, 0.28),
+        dark: rgb(162, 145, 235, 0.42)
     )
 
     static let divider = dynamic(
@@ -75,13 +95,18 @@ extension Color {
     )
 
     static let secondaryText = dynamic(
-        light: rgb(99, 112, 128),
+        light: rgb(99, 109, 129),
         dark: rgb(182, 191, 209)
     )
 
     static let textMuted = dynamic(
         light: rgb(136, 148, 165),
         dark: rgb(142, 153, 172)
+    )
+
+    static let helperText = dynamic(
+        light: rgb(126, 134, 154),
+        dark: rgb(153, 162, 181)
     )
 
     static let accentInk = dynamic(
@@ -120,13 +145,18 @@ extension Color {
     )
 
     static let buttonTop = dynamic(
-        light: rgb(95, 76, 212),
+        light: rgb(122, 87, 220),
         dark: rgb(134, 111, 255)
     )
 
     static let buttonBottom = dynamic(
-        light: rgb(72, 43, 230),
+        light: rgb(86, 46, 214),
         dark: rgb(107, 82, 255)
+    )
+
+    static let buttonHighlight = dynamic(
+        light: rgb(198, 180, 255, 0.88),
+        dark: rgb(188, 177, 255, 0.72)
     )
 
     static let disabledButton = dynamic(
@@ -162,6 +192,11 @@ extension Color {
     static let shadowColor = dynamic(
         light: rgb(43, 51, 61),
         dark: rgb(0, 0, 0, 0.6)
+    )
+
+    static let onboardingShadow = dynamic(
+        light: rgb(63, 41, 112, 0.18),
+        dark: rgb(0, 0, 0, 0.42)
     )
 
     static let overlayScrim = dynamic(
