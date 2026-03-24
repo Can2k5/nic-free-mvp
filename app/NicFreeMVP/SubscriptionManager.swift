@@ -29,7 +29,13 @@ final class SubscriptionManager: NSObject, ObservableObject {
     @Published private(set) var isRestoringPurchases = false
     @Published var errorMessage: String?
 
+    private let analytics: AnalyticsService
     private var hasStarted = false
+
+    init(analytics: AnalyticsService) {
+        self.analytics = analytics
+        super.init()
+    }
 
     var highlightedPackage: Package? {
         monthlyPackage ?? annualPackage ?? availablePackages.first
@@ -123,6 +129,13 @@ final class SubscriptionManager: NSObject, ObservableObject {
 
             if isProUser {
                 Self.logger.debug("Purchase success for package \(package.storeProduct.productIdentifier, privacy: .public)")
+                analytics.track(
+                    .purchaseCompleted,
+                    properties: [
+                        "package_id": package.storeProduct.productIdentifier,
+                        "source": "paywall"
+                    ]
+                )
                 return .success
             } else {
                 let message = "Your purchase completed, but Ayo Pro is not active yet. Please try restoring purchases in a moment."

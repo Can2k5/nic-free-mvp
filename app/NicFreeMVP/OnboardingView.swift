@@ -21,6 +21,7 @@ struct OnboardingView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var onboardingManager: OnboardingManager
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @EnvironmentObject private var analytics: AnalyticsService
     @FocusState private var focusedField: Field?
     @State private var navigationDirection: NavigationDirection = .forward
     @State private var feedbackMessage: String?
@@ -49,6 +50,8 @@ struct OnboardingView: View {
     @State private var profileQuestionPage = 0
     @State private var profileSelectedAge = 25
     @State private var profileSelectedQuitAttempt = "Never"
+    @State private var hasTrackedOnboardingStart = false
+    @State private var lastTrackedOnboardingStep: OnboardingStep?
 
     private let recognitionOptions = [
         "I keep saying “last time”",
@@ -190,8 +193,20 @@ struct OnboardingView: View {
                 .transition(OnboardingPageTransition.transition(forward: navigationDirection == .forward))
         }
         .animation(OnboardingPageTransition.animation, value: onboardingManager.currentStep)
+        .onAppear {
+            if onboardingManager.currentStep == .hook, !hasTrackedOnboardingStart {
+                hasTrackedOnboardingStart = true
+                analytics.track(.onboardingStarted)
+            }
+            trackOnboardingStepViewed(onboardingManager.currentStep)
+        }
         .onChange(of: onboardingManager.currentStep) { _, step in
             debugPrint("[Onboarding] current step changed -> \(stepLabelForDebug(step))")
+            if step == .hook, !hasTrackedOnboardingStart {
+                hasTrackedOnboardingStart = true
+                analytics.track(.onboardingStarted)
+            }
+            trackOnboardingStepViewed(step)
             feedbackTask?.cancel()
             feedbackMessage = nil
             feedbackStep = nil
@@ -3125,6 +3140,7 @@ struct OnboardingView: View {
 
     private func completeOnboarding() {
         debugPrint("[Onboarding] completeOnboarding() -> home screen navigation trigger")
+        analytics.track(.onboardingCompleted)
         appState.applyOnboarding(onboardingManager.state)
     }
 
@@ -3303,6 +3319,18 @@ struct OnboardingView: View {
 
     private func onboardingPaywallSupportingText(for package: Package) -> String {
         package.storeProduct.introductoryDiscount == nil ? "Current plan" : "Free trial available"
+    }
+
+    private func trackOnboardingStepViewed(_ step: OnboardingStep) {
+        guard lastTrackedOnboardingStep != step else { return }
+        lastTrackedOnboardingStep = step
+
+        let stepName = stepLabelForDebug(step)
+        analytics.track(.onboardingStepViewed, properties: ["step": stepName])
+
+        if step == .paywall {
+            analytics.track(.paywallViewed, properties: ["placement": "onboarding", "step": stepName])
+        }
     }
 
     private func stepLabelForDebug(_ step: OnboardingStep) -> String {

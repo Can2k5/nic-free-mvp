@@ -37,17 +37,52 @@ enum ThemeMode: String, CaseIterable, Codable, Identifiable {
 final class ThemeManager: ObservableObject {
     @Published var mode: ThemeMode {
         didSet {
-            UserDefaults.standard.set(mode.rawValue, forKey: StorageKey.themeMode.rawValue)
+            SettingsDataStore.shared.updateThemeMode(mode)
         }
     }
 
     init() {
-        let stored = UserDefaults.standard.string(forKey: StorageKey.themeMode.rawValue)
-        self.mode = ThemeMode(rawValue: stored ?? "") ?? .light
+        self.mode = SettingsDataStore.shared.load().themeMode
     }
 
     var preferredColorScheme: ColorScheme? {
         mode.preferredColorScheme
+    }
+}
+
+@MainActor
+private final class SettingsDataStore {
+    static let shared = SettingsDataStore()
+
+    func load() -> SettingsData {
+        if let settings = Self.load(SettingsData.self, for: .settingsData) {
+            return settings
+        }
+
+        let legacyTheme = UserDefaults.standard.string(forKey: StorageKey.themeMode.rawValue)
+        return SettingsData(themeMode: ThemeMode(rawValue: legacyTheme ?? "") ?? .light)
+    }
+
+    func updateThemeMode(_ mode: ThemeMode) {
+        var settings = load()
+        settings.themeMode = mode
+        save(settings, for: .settingsData)
+
+        // Keep the old key in sync during the transition.
+        UserDefaults.standard.set(mode.rawValue, forKey: StorageKey.themeMode.rawValue)
+    }
+
+    private func save<T: Encodable>(_ value: T, for key: StorageKey) {
+        if let data = try? JSONEncoder().encode(value) {
+            UserDefaults.standard.set(data, forKey: key.rawValue)
+        }
+    }
+
+    private static func load<T: Decodable>(_ type: T.Type, for key: StorageKey) -> T? {
+        guard let data = UserDefaults.standard.data(forKey: key.rawValue) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(type, from: data)
     }
 }
 
@@ -227,6 +262,52 @@ struct DailyCheckin: Identifiable, Codable {
         self.date = date
         self.cravingLevel = cravingLevel
     }
+}
+
+// MARK: - Grouped local models
+//
+// These models group local data by purpose so it is easier to understand.
+// View-only @State values should stay in views and should not be stored here.
+
+/// Personal setup for the user.
+/// This is the data that answers "who is using the app?" and
+/// "what is their current quit setup?"
+struct ProfileData: Codable {
+    var name: String = ""
+    var quitDate: Date = Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 1)) ?? .now
+    var dailySpend: Double = 8.5
+    var quitReasons: [String] = []
+    var birthday: Date?
+    var age: Int?
+    var gender: String?
+}
+
+/// Long-term journey data.
+/// This is the history the user would expect the app to remember later.
+struct ProgressData: Codable {
+    var onboardingGoals: [String] = []
+    var onboardingTriggers: [String] = []
+    var cravingEvents: [CravingEvent] = []
+    var slipEvents: [SlipEvent] = []
+    var dailyCheckins: [DailyCheckin] = []
+}
+
+/// Onboarding flow data.
+/// This stores both progress inside onboarding and the answers gathered there.
+struct OnboardingData: Codable {
+    var hasCompletedOnboarding: Bool = false
+    var state: OnboardingState = OnboardingState()
+}
+
+/// App preferences that should stay on device.
+struct SettingsData: Codable {
+    var themeMode: ThemeMode = .light
+}
+
+/// Useful short-term local state that improves UX if restored.
+/// This is not view animation state. It is session-like user state.
+struct SessionState: Codable {
+    var completedTodayActionsByDate: [String: [String]] = [:]
 }
 
 enum OnboardingStep: Int, CaseIterable, Codable, Identifiable {
@@ -464,38 +545,154 @@ final class AppState: ObservableObject {
     @Published var activeRescueSessionID = UUID()
     @Published var rewardToast: RewardToastContent?
 
-    @Published private var onboardingCompleted: Bool { didSet { persist() } }
-    @Published var profileName: String { didSet { persist() } }
-    @Published var onboardingGoals: [String] { didSet { persist() } }
-    @Published var onboardingTriggers: [String] { didSet { persist() } }
-    @Published var quitDate: Date { didSet { persist() } }
-    @Published var dailySpend: Double { didSet { persist() } }
-    @Published var cravingEvents: [CravingEvent] { didSet { persist() } }
-    @Published var slipEvents: [SlipEvent] { didSet { persist() } }
-    @Published var quitReasons: [String] { didSet { persist() } }
-    @Published var dailyCheckins: [DailyCheckin] { didSet { persist() } }
+    // AppState stays the shared object used by SwiftUI views.
+    // The actual persistent local data now lives inside these grouped models.
+    @Published var profile: ProfileData { didSet { persist() } }
+    @Published var progress: ProgressData { didSet { persist() } }
+    @Published var onboarding: OnboardingData { didSet { persist() } }
+    @Published var sessionState: SessionState { didSet { persist() } }
 
     private var rewardToastTask: Task<Void, Never>?
 
     init() {
         let defaults = UserDefaults.standard
-        self.onboardingCompleted = defaults.object(forKey: StorageKey.onboardingCompleted.rawValue) as? Bool ?? false
-        self.profileName = defaults.string(forKey: StorageKey.profileName.rawValue) ?? ""
-        self.onboardingGoals = Self.load([String].self, for: .onboardingGoals) ?? []
-        self.onboardingTriggers = Self.load([String].self, for: .onboardingTriggers) ?? []
-        self.quitDate = defaults.object(forKey: StorageKey.quitDate.rawValue) as? Date
-            ?? Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 1))
-            ?? .now
-        self.dailySpend = defaults.object(forKey: StorageKey.dailySpend.rawValue) as? Double ?? 8.5
-        self.cravingEvents = Self.load([CravingEvent].self, for: .cravingEvents) ?? []
-        self.slipEvents = Self.load([SlipEvent].self, for: .slipEvents) ?? []
-        self.quitReasons = Self.load([String].self, for: .quitReasons) ?? []
-        self.dailyCheckins = Self.load([DailyCheckin].self, for: .dailyCheckins) ?? []
+        self.profile = Self.load(ProfileData.self, for: .profileData) ?? ProfileData(
+            name: defaults.string(forKey: StorageKey.profileName.rawValue) ?? "",
+            quitDate: defaults.object(forKey: StorageKey.quitDate.rawValue) as? Date
+                ?? Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 1))
+                ?? .now,
+            dailySpend: defaults.object(forKey: StorageKey.dailySpend.rawValue) as? Double ?? 8.5,
+            quitReasons: Self.load([String].self, for: .quitReasons) ?? [],
+            birthday: nil,
+            age: Self.legacyAge(from: Self.load(OnboardingState.self, for: .onboardingState)),
+            gender: Self.legacyGender(from: Self.load(OnboardingState.self, for: .onboardingState))
+        )
+        self.progress = Self.load(ProgressData.self, for: .progressData) ?? ProgressData(
+            onboardingGoals: Self.load([String].self, for: .onboardingGoals) ?? [],
+            onboardingTriggers: Self.load([String].self, for: .onboardingTriggers) ?? [],
+            cravingEvents: Self.load([CravingEvent].self, for: .cravingEvents) ?? [],
+            slipEvents: Self.load([SlipEvent].self, for: .slipEvents) ?? [],
+            dailyCheckins: Self.load([DailyCheckin].self, for: .dailyCheckins) ?? []
+        )
+        self.onboarding = Self.load(OnboardingData.self, for: .onboardingData) ?? OnboardingData(
+            hasCompletedOnboarding: defaults.object(forKey: StorageKey.onboardingCompleted.rawValue) as? Bool ?? false,
+            state: Self.load(OnboardingState.self, for: .onboardingState) ?? OnboardingState()
+        )
+        self.sessionState = Self.load(SessionState.self, for: .sessionState) ?? SessionState()
     }
 
     var hasCompletedOnboarding: Bool {
-        get { onboardingCompleted }
-        set { onboardingCompleted = newValue }
+        get { onboarding.hasCompletedOnboarding }
+        set { onboarding.hasCompletedOnboarding = newValue }
+    }
+
+    // Compatibility accessors let the rest of the app keep using the same names.
+    // That keeps this refactor small and safe.
+    var profileName: String {
+        get { profile.name }
+        set { profile.name = newValue }
+    }
+
+    var onboardingGoals: [String] {
+        get { progress.onboardingGoals }
+        set { progress.onboardingGoals = newValue }
+    }
+
+    var onboardingTriggers: [String] {
+        get { progress.onboardingTriggers }
+        set { progress.onboardingTriggers = newValue }
+    }
+
+    var quitDate: Date {
+        get { profile.quitDate }
+        set { profile.quitDate = newValue }
+    }
+
+    var dailySpend: Double {
+        get { profile.dailySpend }
+        set { profile.dailySpend = newValue }
+    }
+
+    var cravingEvents: [CravingEvent] {
+        get { progress.cravingEvents }
+        set { progress.cravingEvents = newValue }
+    }
+
+    var slipEvents: [SlipEvent] {
+        get { progress.slipEvents }
+        set { progress.slipEvents = newValue }
+    }
+
+    var quitReasons: [String] {
+        get { profile.quitReasons }
+        set { profile.quitReasons = newValue }
+    }
+
+    var dailyCheckins: [DailyCheckin] {
+        get { progress.dailyCheckins }
+        set { progress.dailyCheckins = newValue }
+    }
+
+    var birthday: Date? {
+        get { profile.birthday }
+        set {
+            profile.birthday = newValue
+            if let newValue {
+                profile.age = Self.ageFromBirthday(newValue)
+            }
+        }
+    }
+
+    var age: Int? {
+        get { effectiveAge }
+        set {
+            guard profile.birthday == nil else { return }
+            profile.age = newValue
+        }
+    }
+
+    var gender: String? {
+        get { profile.gender }
+        set { profile.gender = newValue }
+    }
+
+    var effectiveAge: Int? {
+        if let birthday = profile.birthday {
+            return Self.ageFromBirthday(birthday)
+        }
+        return profile.age
+    }
+
+    var hasBirthday: Bool {
+        profile.birthday != nil
+    }
+
+    var ageBucketLabel: String? {
+        guard let age = effectiveAge else { return nil }
+        return Self.ageBucket(for: age)
+    }
+
+    func completedTodayActions(for date: Date = .now) -> Set<String> {
+        let key = Self.sessionDayKey(for: date)
+        return Set(sessionState.completedTodayActionsByDate[key] ?? [])
+    }
+
+    func isTodayActionCompleted(_ actionID: String, on date: Date = .now) -> Bool {
+        completedTodayActions(for: date).contains(actionID)
+    }
+
+    func setTodayActionCompleted(_ actionID: String, isCompleted: Bool, on date: Date = .now) {
+        let key = Self.sessionDayKey(for: date)
+        var updated = completedTodayActions(for: date)
+
+        if isCompleted {
+            updated.insert(actionID)
+        } else {
+            updated.remove(actionID)
+        }
+
+        sessionState.completedTodayActionsByDate[key] = Array(updated).sorted()
+        pruneOldCompletedTodayActions()
     }
 
     var cravingsDefeated: Int {
@@ -630,6 +827,7 @@ final class AppState: ObservableObject {
     }
 
     func applyOnboarding(_ onboarding: OnboardingState) {
+        self.onboarding.state = onboarding
         profileName = onboarding.name.trimmingCharacters(in: .whitespacesAndNewlines)
         onboardingGoals = onboarding.startPoint.map { [$0] } ?? onboarding.goal.map { [$0] } ?? []
 
@@ -643,6 +841,10 @@ final class AppState: ObservableObject {
         }
         onboardingTriggers = triggers
         dailySpend = max(onboarding.weeklySpending / 7, 0)
+        if profile.birthday == nil {
+            profile.age = Self.legacyAge(from: onboarding)
+        }
+        gender = Self.legacyGender(from: onboarding)
 
         var reasons: [String] = []
         if let startPoint = onboarding.startPoint?.trimmingCharacters(in: .whitespacesAndNewlines), !startPoint.isEmpty {
@@ -696,6 +898,7 @@ final class AppState: ObservableObject {
         cravingEvents = []
         slipEvents = []
         dailyCheckins = []
+        sessionState.completedTodayActionsByDate = [:]
     }
 
     func clearCravingHistory() {
@@ -708,6 +911,7 @@ final class AppState: ObservableObject {
         onboardingGoals = []
         onboardingTriggers = []
         quitReasons = []
+        onboarding.state = OnboardingState()
     }
 
     func showRewardToast(title: String, message: String, duration: Double = 1.8) {
@@ -803,16 +1007,23 @@ final class AppState: ObservableObject {
 
     private func persist() {
         let defaults = UserDefaults.standard
-        defaults.set(onboardingCompleted, forKey: StorageKey.onboardingCompleted.rawValue)
-        defaults.set(profileName, forKey: StorageKey.profileName.rawValue)
-        save(onboardingGoals, for: .onboardingGoals)
-        save(onboardingTriggers, for: .onboardingTriggers)
-        defaults.set(quitDate, forKey: StorageKey.quitDate.rawValue)
-        defaults.set(dailySpend, forKey: StorageKey.dailySpend.rawValue)
-        save(cravingEvents, for: .cravingEvents)
-        save(slipEvents, for: .slipEvents)
-        save(quitReasons, for: .quitReasons)
-        save(dailyCheckins, for: .dailyCheckins)
+        save(profile, for: .profileData)
+        save(progress, for: .progressData)
+        save(onboarding, for: .onboardingData)
+        save(sessionState, for: .sessionState)
+
+        // Also keep the older keys up to date so existing installs can migrate safely.
+        defaults.set(onboarding.hasCompletedOnboarding, forKey: StorageKey.onboardingCompleted.rawValue)
+        defaults.set(profile.name, forKey: StorageKey.profileName.rawValue)
+        save(progress.onboardingGoals, for: .onboardingGoals)
+        save(progress.onboardingTriggers, for: .onboardingTriggers)
+        defaults.set(profile.quitDate, forKey: StorageKey.quitDate.rawValue)
+        defaults.set(profile.dailySpend, forKey: StorageKey.dailySpend.rawValue)
+        save(progress.cravingEvents, for: .cravingEvents)
+        save(progress.slipEvents, for: .slipEvents)
+        save(profile.quitReasons, for: .quitReasons)
+        save(progress.dailyCheckins, for: .dailyCheckins)
+        save(onboarding.state, for: .onboardingState)
     }
 
     private func save<T: Encodable>(_ value: T, for key: StorageKey) {
@@ -827,9 +1038,86 @@ final class AppState: ObservableObject {
         }
         return try? JSONDecoder().decode(type, from: data)
     }
+
+    private func pruneOldCompletedTodayActions(keepingRecentDays daysToKeep: Int = 14) {
+        let calendar = Calendar.current
+        let earliestDate = calendar.date(
+            byAdding: .day,
+            value: -(daysToKeep - 1),
+            to: calendar.startOfDay(for: .now)
+        ) ?? .now
+
+        sessionState.completedTodayActionsByDate = sessionState.completedTodayActionsByDate.filter { key, _ in
+            guard let date = Self.sessionDayFormatter.date(from: key) else { return false }
+            return date >= earliestDate
+        }
+    }
+
+    private static func sessionDayKey(for date: Date) -> String {
+        sessionDayFormatter.string(from: Calendar.current.startOfDay(for: date))
+    }
+
+    private static let sessionDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    private static func legacyAge(from onboarding: OnboardingState?) -> Int? {
+        guard let rawValue = legacyProfileQuestionValue(for: "age", in: onboarding) else {
+            return nil
+        }
+
+        switch rawValue {
+        case "Under 18":
+            return 17
+        case "18–25":
+            return 22
+        case "25+":
+            return 30
+        default:
+            return Int(rawValue)
+        }
+    }
+
+    private static func legacyGender(from onboarding: OnboardingState?) -> String? {
+        legacyProfileQuestionValue(for: "gender", in: onboarding)
+    }
+
+    private static func legacyProfileQuestionValue(for key: String, in onboarding: OnboardingState?) -> String? {
+        onboarding?.profileQuestions
+            .first(where: { $0.hasPrefix("\(key):") })?
+            .split(separator: ":", maxSplits: 1)
+            .dropFirst()
+            .first
+            .map(String.init)
+    }
+
+    static func ageBucket(for age: Int) -> String {
+        if age < 18 {
+            return "Under 18"
+        }
+        if age <= 25 {
+            return "18–25"
+        }
+        return "25+"
+    }
+
+    private static func ageFromBirthday(_ birthday: Date) -> Int {
+        let components = Calendar.current.dateComponents([.year], from: birthday, to: .now)
+        return max(components.year ?? 0, 0)
+    }
 }
 
 private enum StorageKey: String {
+    case profileData
+    case progressData
+    case onboardingData
+    case settingsData
+    case sessionState
     case onboardingCompleted
     case onboardingState
     case profileName

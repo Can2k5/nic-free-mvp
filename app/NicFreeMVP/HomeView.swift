@@ -91,11 +91,12 @@ struct HomeView: View {
     }
 
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var authManager: AuthManager
     @Binding var selectedTab: RootTabView.Tab
     @State private var showingSlipFlow = false
     @State private var showingCravingView = false
     @State private var showingPaywallTest = false
-    @State private var completedTodayActions: Set<TodayAction> = []
+    @State private var showingAccountFlow = false
     @State private var animatedMilestones: Set<Milestone> = []
     @State private var seenUnlockedMilestones: Set<Milestone> = []
 
@@ -144,6 +145,11 @@ struct HomeView: View {
             .sheet(isPresented: $showingPaywallTest) {
                 paywallTestSheet
             }
+            .sheet(isPresented: $showingAccountFlow) {
+                AccountDestinationView()
+                    .environmentObject(appState)
+                    .environmentObject(authManager)
+            }
             .onAppear {
                 syncMilestones()
             }
@@ -154,6 +160,7 @@ struct HomeView: View {
                 syncMilestones()
             }
         }
+        .trackAnalyticsEvent(.homeViewed)
     }
 
     @ViewBuilder
@@ -200,25 +207,24 @@ struct HomeView: View {
             return .delayFirstPuff
         }
 
-        return TodayAction.allCases.first(where: { !completedTodayActions.contains($0) }) ?? .deepBreaths
+        return TodayAction.allCases.first(where: { !isTodayActionCompleted($0) }) ?? .deepBreaths
     }
 
-    private var progressSummary: (title: String, progress: Double, current: String, target: String) {
-        let days = appState.nicotineFreeDays
+    private var progressSummary: (progress: Double, currentDays: Int, previousMilestone: Int, targetDays: Int, daysRemaining: Int, supportingLine: String) {
+        let milestones = [1, 3, 7, 14, 30, 60, 90]
+        let currentDays = max(appState.nicotineFreeDays, 0)
+        let targetDays = milestones.first(where: { currentDays < $0 }) ?? max(currentDays + 30, 120)
+        let previousMilestone = milestones.last(where: { $0 < targetDays }) ?? 0
+        let span = max(targetDays - previousMilestone, 1)
+        let progressedDays = max(currentDays - previousMilestone, 0)
+        let progress = min(max(Double(progressedDays) / Double(span), 0.06), 1)
+        let daysRemaining = max(targetDays - currentDays, 0)
+        let milestoneLabel = targetDays == 1 ? "first day" : "\(targetDays)-day mark"
+        let supportingLine = daysRemaining == 0
+            ? "You just reached your \(milestoneLabel)."
+            : "\(daysRemaining) \(daysRemaining == 1 ? "day" : "days") until your \(milestoneLabel)"
 
-        if days < 1 {
-            return ("Next step", min(Double(days), 1), "\(days)d", "1 day")
-        } else if days < 3 {
-            let segmentProgress = Double(days - 1) / 2
-            return ("Next step", max(0, min(segmentProgress, 1)), "\(days)d", "3 days")
-        } else if days < 7 {
-            let segmentProgress = Double(days - 3) / 4
-            return ("Next step", max(0, min(segmentProgress, 1)), "\(days)d", "7 days")
-        } else {
-            let span = max(appState.nicotineFreeDays, 7)
-            let progress = min(Double(span - 7) / 7, 1)
-            return ("Building momentum", progress, "\(span)d", "14 days")
-        }
+        return (progress, currentDays, previousMilestone, targetDays, daysRemaining, supportingLine)
     }
 
     private var weekCheckins: [CheckinDay] {
@@ -236,36 +242,24 @@ struct HomeView: View {
         HeroCard(
             eyebrow: "Daily dashboard",
             title: "Day \(max(appState.nicotineFreeDays, 1))",
-            subtitle: "nicotine-free",
-            badge: statusBadgeTitle
+            subtitle: "nicotine-free"
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                ProgressRing(
-                    progress: progressSummary.progress,
-                    lineWidth: 9,
-                    diameter: 82
+                MomentumCurveProgress(
+                    currentDays: progressSummary.currentDays,
+                    width: 308,
+                    curveHeight: 164
                 )
-                .opacity(0.82)
-                .overlay {
-                    Text(progressRingValue)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(Color.ink)
-                }
-                .padding(.bottom, 2)
-
-                Text(emotionalAnchor)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.ink.opacity(0.72))
-                    .lineSpacing(3)
-                    .lineLimit(1)
-
-                Text("\(progressSummary.current) toward \(progressSummary.target)")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.heroSecondaryText.opacity(0.82))
-                    .textCase(.uppercase)
-                    .tracking(0.8)
+                .padding(.top, AppSpacing.xs)
             }
             .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .overlay(alignment: .topTrailing) {
+            AccountEntryButton {
+                showingAccountFlow = true
+            }
+            .padding(.top, 18)
+            .padding(.trailing, 18)
         }
     }
 
@@ -337,23 +331,23 @@ struct HomeView: View {
     }
 
     private var todayFocusActionTitle: String {
-        completedTodayActions.contains(selectedTodayFocus) ? "Done for today ✓" : "Mark as done"
+        isTodayActionCompleted(selectedTodayFocus) ? "Done for today ✓" : "Mark as done"
     }
 
     private var todayFocusActionBackground: Color {
-        completedTodayActions.contains(selectedTodayFocus) ? Color.accentWash.opacity(0.95) : Color.surfaceElevated
+        isTodayActionCompleted(selectedTodayFocus) ? Color.accentWash.opacity(0.95) : Color.surfaceElevated
     }
 
     private var todayFocusActionStroke: Color {
-        completedTodayActions.contains(selectedTodayFocus) ? Color.heroAccent.opacity(0.28) : Color.border
+        isTodayActionCompleted(selectedTodayFocus) ? Color.heroAccent.opacity(0.28) : Color.border
     }
 
     private var todayFocusTitle: String {
-        completedTodayActions.contains(selectedTodayFocus) ? "That step is done" : "Today’s focus"
+        isTodayActionCompleted(selectedTodayFocus) ? "That step is done" : "Today’s focus"
     }
 
     private var todayFocusSubtitle: String {
-        completedTodayActions.contains(selectedTodayFocus)
+        isTodayActionCompleted(selectedTodayFocus)
             ? "One small win, done."
             : "One small step that can help today"
     }
@@ -436,7 +430,7 @@ struct HomeView: View {
 
     private var homeTodayFocus: some View {
         let action = selectedTodayFocus
-        let isCompleted = completedTodayActions.contains(action)
+        let isCompleted = isTodayActionCompleted(action)
 
         return ActionCard(
             title: todayFocusTitle,
@@ -457,9 +451,9 @@ struct HomeView: View {
 
                 Button {
                     if isCompleted {
-                        completedTodayActions.remove(action)
+                        appState.setTodayActionCompleted(action.rawValue, isCompleted: false)
                     } else {
-                        completedTodayActions.insert(action)
+                        appState.setTodayActionCompleted(action.rawValue, isCompleted: true)
                         OnboardingHaptics.success()
                         appState.showRewardToast(
                             title: "That is one step forward.",
@@ -559,20 +553,6 @@ struct HomeView: View {
             .buttonStyle(SecondaryButtonStyle())
         }
         .padding(.horizontal, 4)
-    }
-
-    private var progressRingValue: String {
-        String(max(appState.nicotineFreeDays, 1))
-    }
-
-    private var statusBadgeTitle: String {
-        if appState.nicotineFreeDays >= 7 {
-            return "Building momentum"
-        } else if appState.cravingsDefeated >= 1 {
-            return "Keep going"
-        } else {
-            return "Getting started"
-        }
     }
 
     private var currencyCode: String {
@@ -689,6 +669,10 @@ struct HomeView: View {
             }
         }
     }
+
+    private func isTodayActionCompleted(_ action: TodayAction) -> Bool {
+        appState.isTodayActionCompleted(action.rawValue)
+    }
 }
 
 private struct HomeMetricPill: View {
@@ -737,28 +721,285 @@ private struct CompactStat: View {
     }
 }
 
-private struct ProgressRing: View {
-    let progress: Double
-    let lineWidth: CGFloat
-    let diameter: CGFloat
+private struct MomentumCurveProgress: View {
+    let currentDays: Int
+    let width: CGFloat
+    let curveHeight: CGFloat
+
+    @State private var animatedProgress: CGFloat = 0
+    @State private var markersVisible = false
+
+    private let levels: [Int] = [0, 1, 2, 5, 10, 14, 21, 30, 45, 60, 90, 120]
+
+    private var nextIndex: Int {
+        levels.firstIndex(where: { currentDays < $0 }) ?? max(levels.count - 1, 1)
+    }
+
+    private var currentLevelIndex: Int {
+        max(nextIndex - 1, 0)
+    }
+
+    private var currentLevelDay: Int {
+        levels[currentLevelIndex]
+    }
+
+    private var nextLevelDay: Int {
+        levels[min(nextIndex, levels.count - 1)]
+    }
+
+    private var visibleStartIndex: Int {
+        max(currentLevelIndex - 1, 0)
+    }
+
+    private var visibleEndIndex: Int {
+        min(nextIndex + 1, levels.count - 1)
+    }
+
+    private var visibleStartDay: Int {
+        levels[visibleStartIndex]
+    }
+
+    private var visibleEndDay: Int {
+        levels[visibleEndIndex]
+    }
+
+    private var visibleRangeSpan: CGFloat {
+        CGFloat(max(visibleEndDay - visibleStartDay, 1))
+    }
+
+    private func normalizedPosition(for day: Int) -> CGFloat {
+        let clampedDay = min(max(day, visibleStartDay), visibleEndDay)
+        return CGFloat(clampedDay - visibleStartDay) / visibleRangeSpan
+    }
+
+    private var currentPosition: CGFloat {
+        normalizedPosition(for: currentDays)
+    }
+
+    private var progressContextLine: String {
+        "\(max(currentDays, 1)) days nicotine-free"
+    }
+
+    private var axisTicks: [AxisTick] {
+        let tickDays = [visibleStartDay, nextLevelDay, visibleEndDay]
+        var ticks: [AxisTick] = []
+
+        for day in tickDays {
+            if !ticks.contains(where: { $0.day == day }) {
+                ticks.append(AxisTick(day: day, progress: normalizedPosition(for: day)))
+            }
+        }
+
+        return Array(ticks.prefix(4))
+    }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .topLeading) {
+                Ellipse()
+                    .fill(Color.cardBackground.opacity(0.22))
+                    .frame(width: width - 8, height: curveHeight - 10)
+                    .blur(radius: 14)
+                    .offset(x: 4, y: 10)
+
+                MomentumCurveShape(progress: 1)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.surfaceMuted.opacity(0.9),
+                                Color.surfaceMuted.opacity(0.68)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        style: StrokeStyle(lineWidth: 20, lineCap: .round, lineJoin: .round)
+                    )
+                    .frame(width: width, height: curveHeight)
+
+                MomentumCurveShape(progress: max(0.01, min(animatedProgress, 1)))
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.79, green: 0.68, blue: 0.98),
+                                Color.buttonTop.opacity(0.98),
+                                Color.buttonBottom
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        style: StrokeStyle(lineWidth: 20, lineCap: .round, lineJoin: .round)
+                    )
+                    .shadow(color: Color.buttonBottom.opacity(0.14), radius: 16, x: 0, y: 6)
+                    .frame(width: width, height: curveHeight)
+
+                currentProgressMarker(at: currentPosition)
+            }
+            .frame(width: width, height: curveHeight)
+
+            MomentumAxis(
+                width: width,
+                ticks: axisTicks,
+                currentProgress: currentPosition
+            )
+
+            Text(progressContextLine)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.ink.opacity(0.78))
+        }
+        .frame(width: width, alignment: .leading)
+        .onAppear {
+            animatedProgress = 0
+            markersVisible = false
+            withAnimation(.easeOut(duration: 1.34)) {
+                animatedProgress = currentPosition
+            }
+            withAnimation(.easeOut(duration: 0.36).delay(0.18)) {
+                markersVisible = true
+            }
+        }
+        .onChange(of: currentDays) {
+            animatedProgress = 0
+            markersVisible = false
+            withAnimation(.easeOut(duration: 1.22)) {
+                animatedProgress = currentPosition
+            }
+            withAnimation(.easeOut(duration: 0.32).delay(0.16)) {
+                markersVisible = true
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func currentProgressMarker(at t: CGFloat) -> some View {
+        let point = MomentumCurveShape.point(
+            in: CGRect(origin: .zero, size: CGSize(width: width, height: curveHeight)),
+            t: t
+        )
+
         ZStack {
             Circle()
-                .stroke(Color.surfaceMuted, lineWidth: lineWidth)
+                .fill(Color.buttonBottom.opacity(markersVisible ? 0.16 : 0))
+                .frame(width: 24, height: 24)
+                .blur(radius: 2)
 
             Circle()
-                .trim(from: 0, to: max(0.06, min(progress, 1)))
-                .stroke(
-                    AngularGradient(
-                        colors: [Color.heroAccent, Color.buttonTop, Color.buttonBottom],
-                        center: .center
-                    ),
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                .fill(Color.buttonBottom)
+                .frame(width: 14, height: 14)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.92), lineWidth: 2)
                 )
-                .rotationEffect(.degrees(-90))
         }
-        .frame(width: diameter, height: diameter)
+        .shadow(color: Color.buttonBottom.opacity(0.14), radius: 10, x: 0, y: 4)
+        .opacity(markersVisible ? 1 : 0.86)
+        .position(x: point.x, y: point.y)
+    }
+}
+
+private struct AxisTick: Identifiable {
+    let day: Int
+    let progress: CGFloat
+
+    var id: Int { day }
+}
+
+private struct MomentumAxis: View {
+    let width: CGFloat
+    let ticks: [AxisTick]
+    let currentProgress: CGFloat
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Capsule(style: .continuous)
+                .fill(Color.border.opacity(0.2))
+                .frame(width: width, height: 1)
+
+            ForEach(ticks) { tick in
+                VStack(spacing: 6) {
+                    Capsule(style: .continuous)
+                        .fill(tickFill(for: tick))
+                        .frame(width: 1.5, height: tick.progress <= currentProgress ? 8 : 6)
+
+                    Text("\(tick.day)")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(tick.progress <= currentProgress ? Color.ink.opacity(0.72) : Color.secondaryText.opacity(0.68))
+                }
+                .position(x: width * tick.progress, y: 16)
+            }
+        }
+        .frame(width: width, height: 30, alignment: .leading)
+    }
+
+    private func tickFill(for tick: AxisTick) -> Color {
+        tick.progress <= currentProgress ? Color.buttonBottom.opacity(0.52) : Color.border.opacity(0.42)
+    }
+}
+
+private struct MomentumCurveShape: Shape {
+    var progress: CGFloat
+
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let clamped = max(0, min(progress, 1))
+        guard clamped > 0 else { return path }
+
+        let start = CGPoint(x: rect.minX + 4, y: rect.maxY - 14)
+        let end = CGPoint(x: rect.maxX - 4, y: rect.minY + 24)
+        let firstControl = CGPoint(x: rect.minX + (rect.width * 0.16), y: rect.minY - 8)
+        let secondControl = CGPoint(x: rect.minX + (rect.width * 0.56), y: rect.minY + 4)
+        let steps = max(Int(110 * clamped), 2)
+
+        path.move(to: start)
+
+        for step in 1...steps {
+            let t = CGFloat(step) / CGFloat(steps)
+            let scaledT = t * clamped
+            let point = Self.cubicBezierPoint(
+                t: scaledT,
+                start: start,
+                control1: firstControl,
+                control2: secondControl,
+                end: end
+            )
+            path.addLine(to: point)
+        }
+
+        return path
+    }
+
+    static func point(in rect: CGRect, t: CGFloat) -> CGPoint {
+        let clamped = max(0, min(t, 1))
+        let start = CGPoint(x: rect.minX + 4, y: rect.maxY - 14)
+        let end = CGPoint(x: rect.maxX - 4, y: rect.minY + 24)
+        let firstControl = CGPoint(x: rect.minX + (rect.width * 0.16), y: rect.minY - 8)
+        let secondControl = CGPoint(x: rect.minX + (rect.width * 0.56), y: rect.minY + 4)
+        return cubicBezierPoint(t: clamped, start: start, control1: firstControl, control2: secondControl, end: end)
+    }
+
+    private static func cubicBezierPoint(
+        t: CGFloat,
+        start: CGPoint,
+        control1: CGPoint,
+        control2: CGPoint,
+        end: CGPoint
+    ) -> CGPoint {
+        let inverseT = 1 - t
+        let x =
+            (inverseT * inverseT * inverseT * start.x) +
+            (3 * inverseT * inverseT * t * control1.x) +
+            (3 * inverseT * t * t * control2.x) +
+            (t * t * t * end.x)
+        let y =
+            (inverseT * inverseT * inverseT * start.y) +
+            (3 * inverseT * inverseT * t * control1.y) +
+            (3 * inverseT * t * t * control2.y) +
+            (t * t * t * end.y)
+        return CGPoint(x: x, y: y)
     }
 }
 
@@ -824,4 +1065,5 @@ private struct WeeklyCheckinStrip: View {
 #Preview {
     HomeView(selectedTab: .constant(.home))
         .environmentObject(AppState())
+        .environmentObject(AuthManager())
 }

@@ -8,6 +8,7 @@ struct CravingRescueView: View {
     }
 
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var analytics: AnalyticsService
     @Binding var selectedTab: RootTabView.Tab
     let startInReflection: Bool
     @State private var secondsRemaining: Int = 90
@@ -63,6 +64,7 @@ struct CravingRescueView: View {
             startSessionIfNeeded()
         }
         .onAppear {
+            analytics.track(.cravingRescueStarted, properties: ["rescue_type": "timer"])
             startSessionIfNeeded()
             if startInReflection {
                 phase = .reflection
@@ -323,6 +325,14 @@ struct CravingRescueView: View {
 
             primaryActionButton(title: "Save and keep going", systemImage: "checkmark.circle.fill", isEnabled: selectedTrigger != nil) {
                 guard let selectedTrigger else { return }
+                analytics.track(
+                    .cravingRescueCompleted,
+                    properties: [
+                        "rescue_type": "timer",
+                        "trigger": selectedTrigger.rawValue,
+                        "intensity": selectedIntensity
+                    ]
+                )
                 appState.saveCravingEvent(
                     intensity: selectedIntensity,
                     trigger: selectedTrigger,

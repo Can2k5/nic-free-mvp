@@ -1,13 +1,6 @@
 import SwiftUI
 
 struct SettingsView: View {
-    private enum DataAction: String, Identifiable {
-        case resetProgress
-        case clearCravingHistory
-
-        var id: String { rawValue }
-    }
-
     private enum Metrics {
         static let screenHorizontalPadding = AppSpacing.lg
         static let screenTopPadding = AppSpacing.xl
@@ -30,82 +23,87 @@ struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var onboardingManager: OnboardingManager
     @EnvironmentObject private var themeManager: ThemeManager
-    @State private var pendingAction: DataAction?
+    @EnvironmentObject private var authManager: AuthManager
 
     var body: some View {
         NavigationStack {
             ZStack {
                 AppBackground()
 
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: AppSpacing.section) {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: AppSpacing.lg) {
                         settingsHeader
                             .softEntrance(delay: 0.02, distance: 10)
 
                         navigationOverviewSection
                             .softEntrance(delay: 0.06, distance: 12)
-
-                        resetSection
-                            .softEntrance(delay: 0.1, distance: 12)
-
-                        appInformationSection
-                            .softEntrance(delay: 0.14, distance: 12)
                     }
                     .padding(.horizontal, Metrics.screenHorizontalPadding)
                     .padding(.top, AppSpacing.lg)
                     .padding(.bottom, AppSpacing.lg)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
+                .frame(maxWidth: .infinity)
+                .clipped()
             }
             .toolbar(.hidden, for: .navigationBar)
-        }
-        .confirmationDialog(
-            dialogTitle,
-            isPresented: Binding(
-                get: { pendingAction != nil },
-                set: { if !$0 { pendingAction = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            switch pendingAction {
-            case .resetProgress:
-                Button("Reset progress", role: .destructive) {
-                    appState.resetProgress()
-                }
-            case .clearCravingHistory:
-                Button("Clear craving history", role: .destructive) {
-                    appState.clearCravingHistory()
-                }
-            case .none:
-                EmptyView()
-            }
-
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(dialogMessage)
         }
     }
 
     private var settingsHeader: some View {
-        HeroCard(
-            eyebrow: "Settings",
-            title: heroTitle,
-            subtitle: heroSubtitle,
-            badge: heroAccentLabel
+        CardSection(
+            fill: AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color.cardBackground.opacity(0.98), Color.heroTop.opacity(0.72)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
         ) {
-            Text(heroSupportingLine)
-                .font(.subheadline)
-                .foregroundStyle(Color.heroSecondaryText)
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                HStack(alignment: .top, spacing: AppSpacing.md) {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("Settings")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.heroSecondaryText)
+                            .textCase(.uppercase)
+                            .tracking(1.1)
 
-            KPIGrid {
-                ForEach(heroMetrics) { metric in
-                    KPIBlock(
-                        value: metric.value,
-                        label: metric.label,
-                        icon: metric.symbol
-                    )
+                        Text(heroTitle)
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.ink)
+                            .lineSpacing(2)
+
+                        Text(heroSubtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(Color.heroSecondaryText)
+                            .lineLimit(2)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Text(heroAccentLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.heroAccent)
+                        .padding(.horizontal, AppSpacing.sm)
+                        .padding(.vertical, AppSpacing.xs)
+                        .background(Color.cardBackground.opacity(0.6))
+                        .clipShape(Capsule())
+                }
+
+                Text(heroSupportingLine)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.heroSecondaryText)
+                    .lineLimit(2)
+
+                HStack(spacing: AppSpacing.md) {
+                    ForEach(heroMetrics) { metric in
+                        SettingsHeaderMetric(metric: metric)
+                    }
                 }
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var heroTitle: String {
@@ -158,6 +156,17 @@ struct SettingsView: View {
         return trimmed.isEmpty ? "You" : trimmed
     }
 
+    private var accountSummaryText: String {
+        if let user = authManager.signedInUser {
+            if let email = user.email?.trimmingCharacters(in: .whitespacesAndNewlines), !email.isEmpty {
+                return "\(user.provider.title) account connected"
+            }
+            return "Signed in with \(user.provider.title)"
+        }
+
+        return "Sign in and manage your account details"
+    }
+
     private var startDateText: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -175,12 +184,25 @@ struct SettingsView: View {
                 .foregroundStyle(Color.ink)
 
             NavigationLink {
+                AccountDestinationView()
+                    .environmentObject(appState)
+                    .environmentObject(authManager)
+            } label: {
+                ActionCard(
+                    title: "Account",
+                    subtitle: accountSummaryText,
+                    icon: "person.crop.circle.badge.checkmark"
+                )
+            }
+            .buttonStyle(CardPressButtonStyle())
+
+            NavigationLink {
                 ProgressSettingsView()
             } label: {
                 ActionCard(
                     title: "Your Progress",
                     subtitle: "Quit date and daily spend",
-                    icon: "chart.line"
+                    icon: "chart.bar.fill"
                 )
             }
             .buttonStyle(CardPressButtonStyle())
@@ -206,86 +228,30 @@ struct SettingsView: View {
                 )
             }
             .buttonStyle(CardPressButtonStyle())
-        }
-    }
 
-    private var resetSection: some View {
-        InsightCard(
-            title: "Reset options",
-            subtitle: "These actions affect what the app remembers.",
-            icon: "arrow.counterclockwise"
-        ) {
-            VStack(spacing: AppSpacing.md) {
-                Button {
-                    pendingAction = .resetProgress
-                } label: {
-                    ActionCard(
-                        title: "Reset progress",
-                        subtitle: "Start your count again and clear logged moments.",
-                        icon: "arrow.counterclockwise",
-                        showsChevron: false
-                    )
-                }
-                .buttonStyle(CardPressButtonStyle())
-
-                Button {
-                    pendingAction = .clearCravingHistory
-                } label: {
-                    ActionCard(
-                        title: "Clear craving history",
-                        subtitle: "Clear logged cravings while keeping your setup.",
-                        icon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
-                        showsChevron: false
-                    )
-                }
-                .buttonStyle(CardPressButtonStyle())
-
-                Button {
-                    appState.resetOnboardingForDebug()
-                    onboardingManager.reset()
-                } label: {
-                    ActionCard(
-                        title: "Reset onboarding",
-                        subtitle: "Go through the welcome flow again from the start.",
-                        icon: "sparkles",
-                        showsChevron: false
-                    )
-                }
-                .buttonStyle(CardPressButtonStyle())
+            NavigationLink {
+                ResetOptionsView()
+                    .environmentObject(appState)
+                    .environmentObject(onboardingManager)
+            } label: {
+                ActionCard(
+                    title: "Reset Options",
+                    subtitle: "Progress, craving history, and onboarding",
+                    icon: "arrow.counterclockwise"
+                )
             }
-        }
-    }
+            .buttonStyle(CardPressButtonStyle())
 
-    private var appInformationSection: some View {
-        InsightCard(
-            title: "App information",
-            subtitle: "A few practical details for the app.",
-            icon: "info.circle"
-        ) {
-            VStack(alignment: .leading, spacing: AppSpacing.md) {
-                HStack {
-                    Text("App")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.secondaryText)
-                    Spacer()
-                    Text("Nic Free MVP")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.ink)
-                }
-
-                HStack {
-                    Text("Version")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.secondaryText)
-                    Spacer()
-                    Text(appVersionText)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.ink)
-                }
-
-                ActionCard(title: "Privacy Policy", icon: "hand.raised", showsChevron: true)
-                ActionCard(title: "Terms", icon: "doc.text", showsChevron: true)
+            NavigationLink {
+                AppInformationView()
+            } label: {
+                ActionCard(
+                    title: "App Information",
+                    subtitle: "Version, privacy, and terms",
+                    icon: "info.circle"
+                )
             }
+            .buttonStyle(CardPressButtonStyle())
         }
     }
 
@@ -294,29 +260,6 @@ struct SettingsView: View {
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
         return "\(version) (\(build))"
     }
-
-    private var dialogTitle: String {
-        switch pendingAction {
-        case .resetProgress:
-            return "Start progress again?"
-        case .clearCravingHistory:
-            return "Clear craving history?"
-        case .none:
-            return ""
-        }
-    }
-
-    private var dialogMessage: String {
-        switch pendingAction {
-        case .resetProgress:
-            return "This starts your count again and clears saved history. Your reasons stay in place."
-        case .clearCravingHistory:
-            return "This removes saved craving events but keeps your quit date, reasons, and settings."
-        case .none:
-            return ""
-        }
-    }
-
 }
 
 private struct ProgressSettingsView: View {
@@ -326,7 +269,7 @@ private struct ProgressSettingsView: View {
         ZStack {
             AppBackground()
 
-            ScrollView(showsIndicators: false) {
+            ScrollView(.vertical, showsIndicators: false) {
                 SettingsDetailContainer {
                     SettingsSection(
                         title: "Your progress",
@@ -406,10 +349,182 @@ private struct ProgressSettingsView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
+            .clipped()
         }
         .navigationTitle("Your Progress")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
+    }
+}
+
+private struct ResetOptionsView: View {
+    private enum DataAction: String, Identifiable {
+        case resetProgress
+        case clearCravingHistory
+
+        var id: String { rawValue }
+    }
+
+    @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var onboardingManager: OnboardingManager
+    @State private var pendingAction: DataAction?
+
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            ScrollView(.vertical, showsIndicators: false) {
+                SettingsDetailContainer {
+                    SettingsSection(
+                        title: "Reset options",
+                        subtitle: "These actions change what the app remembers on this device."
+                    ) {
+                        SettingsGroupCard {
+                            VStack(spacing: AppSpacing.md) {
+                                Button {
+                                    pendingAction = .resetProgress
+                                } label: {
+                                    ActionCard(
+                                        title: "Reset progress",
+                                        subtitle: "Start your count again and clear logged moments.",
+                                        icon: "arrow.counterclockwise",
+                                        showsChevron: false
+                                    )
+                                }
+                                .buttonStyle(CardPressButtonStyle())
+
+                                Button {
+                                    pendingAction = .clearCravingHistory
+                                } label: {
+                                    ActionCard(
+                                        title: "Clear craving history",
+                                        subtitle: "Clear logged cravings while keeping your setup.",
+                                        icon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+                                        showsChevron: false
+                                    )
+                                }
+                                .buttonStyle(CardPressButtonStyle())
+
+                                Button {
+                                    appState.resetOnboardingForDebug()
+                                    onboardingManager.reset()
+                                } label: {
+                                    ActionCard(
+                                        title: "Reset onboarding",
+                                        subtitle: "Go through the welcome flow again from the start.",
+                                        icon: "sparkles",
+                                        showsChevron: false
+                                    )
+                                }
+                                .buttonStyle(CardPressButtonStyle())
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .clipped()
+        }
+        .navigationTitle("Reset Options")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .confirmationDialog(
+            dialogTitle,
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            switch pendingAction {
+            case .resetProgress:
+                Button("Reset progress", role: .destructive) {
+                    appState.resetProgress()
+                }
+            case .clearCravingHistory:
+                Button("Clear craving history", role: .destructive) {
+                    appState.clearCravingHistory()
+                }
+            case .none:
+                EmptyView()
+            }
+
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(dialogMessage)
+        }
+    }
+
+    private var dialogTitle: String {
+        switch pendingAction {
+        case .resetProgress:
+            return "Start progress again?"
+        case .clearCravingHistory:
+            return "Clear craving history?"
+        case .none:
+            return ""
+        }
+    }
+
+    private var dialogMessage: String {
+        switch pendingAction {
+        case .resetProgress:
+            return "This starts your count again and clears saved history. Your reasons stay in place."
+        case .clearCravingHistory:
+            return "This removes saved craving events but keeps your quit date, reasons, and settings."
+        case .none:
+            return ""
+        }
+    }
+}
+
+private struct AppInformationView: View {
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            ScrollView(.vertical, showsIndicators: false) {
+                SettingsDetailContainer {
+                    SettingsSection(
+                        title: "App information",
+                        subtitle: "A few practical details for the app."
+                    ) {
+                        SettingsGroupCard {
+                            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                                detailRow(title: "App", value: "Nic Free MVP")
+                                detailRow(title: "Version", value: appVersionText)
+                                ActionCard(title: "Privacy Policy", icon: "hand.raised", showsChevron: true)
+                                ActionCard(title: "Terms", icon: "doc.text", showsChevron: true)
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .clipped()
+        }
+        .navigationTitle("App Information")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+    }
+
+    private var appVersionText: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "\(version) (\(build))"
+    }
+
+    private func detailRow(title: String, value: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+            Spacer()
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.ink)
+        }
     }
 }
 
@@ -425,7 +540,7 @@ private struct MotivationSettingsView: View {
         ZStack {
             AppBackground()
 
-            ScrollView(showsIndicators: false) {
+            ScrollView(.vertical, showsIndicators: false) {
                 SettingsDetailContainer {
                     SettingsSection(
                         title: "Your motivation",
@@ -532,6 +647,8 @@ private struct MotivationSettingsView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
+            .clipped()
         }
         .navigationTitle("Your Motivation")
         .navigationBarTitleDisplayMode(.inline)
@@ -546,7 +663,7 @@ private struct AppSettingsView: View {
         ZStack {
             AppBackground()
 
-            ScrollView(showsIndicators: false) {
+            ScrollView(.vertical, showsIndicators: false) {
                 SettingsDetailContainer {
                     SettingsSection(
                         title: "App settings",
@@ -573,10 +690,46 @@ private struct AppSettingsView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
+            .clipped()
         }
         .navigationTitle("App Settings")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
+    }
+}
+
+private struct SettingsHeaderMetric: View {
+    let metric: SettingsHeroMetric
+
+    var body: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Image(systemName: metric.symbol)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.heroAccent)
+                .frame(width: 28, height: 28)
+                .background(Color.cardBackground.opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(metric.value)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.ink)
+                    .lineLimit(1)
+
+                Text(metric.label)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color.heroSecondaryText)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, AppSpacing.sm)
+        .padding(.vertical, 10)
+        .background(Color.cardBackground.opacity(0.52))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -1418,6 +1571,7 @@ private struct SettingsRowPressButtonStyle: ButtonStyle {
 #Preview {
     SettingsView()
         .environmentObject(AppState())
+        .environmentObject(AuthManager())
         .environmentObject(OnboardingManager())
         .environmentObject(ThemeManager())
 }

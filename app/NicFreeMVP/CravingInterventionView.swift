@@ -81,6 +81,7 @@ struct CravingInterventionView: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var analytics: AnalyticsService
 
     @State private var phase: Phase = .exercise
     @State private var breathState: BreathState = .inhale
@@ -125,6 +126,7 @@ struct CravingInterventionView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
         }
         .onAppear {
+            analytics.track(.cravingRescueStarted, properties: ["rescue_type": "breathing"])
             appState.beginCravingSession()
             resetBreathing()
         }
@@ -342,6 +344,7 @@ struct CravingInterventionView: View {
 
     private func completeIntervention() {
         hasCompletedIntervention = true
+        analytics.track(.cravingRescueCompleted, properties: ["rescue_type": "breathing"])
         appState.saveCravingEvent(intensity: 2, trigger: .other, succeeded: true)
         appState.showRewardToast(title: "You stayed with it.", message: "That breath-by-breath pause helped this moment soften.")
         OnboardingHaptics.success()

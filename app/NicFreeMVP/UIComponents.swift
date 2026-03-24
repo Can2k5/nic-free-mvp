@@ -737,6 +737,7 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @EnvironmentObject private var analytics: AnalyticsService
 
     var onPurchaseSuccess: (() -> Void)? = nil
     var onClose: (() -> Void)? = nil
@@ -918,6 +919,7 @@ struct PaywallView: View {
         .onChange(of: subscriptionManager.availablePackages.count) { _, _ in
             syncSelectedPackageID()
         }
+        .trackAnalyticsEvent(.paywallViewed, properties: ["placement": "general", "source": "modal"])
     }
 
     private var paywallPackagesSection: some View {
