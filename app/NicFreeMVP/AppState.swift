@@ -264,6 +264,19 @@ struct DailyCheckin: Identifiable, Codable {
     }
 }
 
+enum SmokeFreeStreakState: String, Codable {
+    case active
+    case onIce
+    case lost
+}
+
+struct SmokeFreeStreak: Codable {
+    var streakCount: Int = 0
+    var streakState: SmokeFreeStreakState = .lost
+    var lastSmokeFreeCheckInDate: Date?
+    var onIceEnteredAt: Date?
+}
+
 // MARK: - Grouped local models
 //
 // These models group local data by purpose so it is easier to understand.
@@ -290,6 +303,7 @@ struct ProgressData: Codable {
     var cravingEvents: [CravingEvent] = []
     var slipEvents: [SlipEvent] = []
     var dailyCheckins: [DailyCheckin] = []
+    var smokeFreeStreak: SmokeFreeStreak = SmokeFreeStreak()
 }
 
 /// Onboarding flow data.
@@ -323,6 +337,7 @@ enum OnboardingStep: Int, CaseIterable, Codable, Identifiable {
     case profileQuestions = 11
     case loading = 12
     case planReady = 13
+    case notificationPermission = 16
     case paywall = 14
     case exitOffer = 15
 
@@ -341,6 +356,7 @@ enum OnboardingStep: Int, CaseIterable, Codable, Identifiable {
         .profileQuestions,
         .loading,
         .planReady,
+        .notificationPermission,
         .paywall,
         .exitOffer
     ]
@@ -358,6 +374,7 @@ enum OnboardingStep: Int, CaseIterable, Codable, Identifiable {
         .profileQuestions,
         .loading,
         .planReady,
+        .notificationPermission,
         .paywall
     ]
 
@@ -579,6 +596,7 @@ final class AppState: ObservableObject {
             state: Self.load(OnboardingState.self, for: .onboardingState) ?? OnboardingState()
         )
         self.sessionState = Self.load(SessionState.self, for: .sessionState) ?? SessionState()
+        refreshSmokeFreeStreakState()
     }
 
     var hasCompletedOnboarding: Bool {
@@ -631,6 +649,11 @@ final class AppState: ObservableObject {
     var dailyCheckins: [DailyCheckin] {
         get { progress.dailyCheckins }
         set { progress.dailyCheckins = newValue }
+    }
+
+    var smokeFreeStreak: SmokeFreeStreak {
+        get { progress.smokeFreeStreak }
+        set { progress.smokeFreeStreak = newValue }
     }
 
     var birthday: Date? {
@@ -707,6 +730,34 @@ final class AppState: ObservableObject {
 
     var moneySaved: Double {
         Double(nicotineFreeDays) * dailySpend
+    }
+
+    var smokeFreeStreakState: SmokeFreeStreakState {
+        evaluatedSmokeFreeStreak().streakState
+    }
+
+    var smokeFreeStreakCount: Int {
+        evaluatedSmokeFreeStreak().streakCount
+    }
+
+    var didSmokeFreeCheckInToday: Bool {
+        let today = Calendar.current.startOfDay(for: .now)
+        guard let lastCheckIn = evaluatedSmokeFreeStreak().lastSmokeFreeCheckInDate else { return false }
+        return Calendar.current.isDate(lastCheckIn, inSameDayAs: today)
+    }
+
+    var smokeFreeStreakStatusLine: String {
+        switch smokeFreeStreakState {
+        case .active:
+            if didSmokeFreeCheckInToday {
+                return "Streak active"
+            }
+            return smokeFreeStreakCount <= 1 ? "Streak active" : "\(smokeFreeStreakCount)-day streak active"
+        case .onIce:
+            return "Streak on ice"
+        case .lost:
+            return "Streak lost"
+        }
     }
 
     var cigarettesAvoided: Int {
@@ -893,11 +944,45 @@ final class AppState: ObservableObject {
         }
     }
 
+    func markSmokeFreeForToday(on date: Date = .now) {
+        let day = Calendar.current.startOfDay(for: date)
+        var streak = evaluatedSmokeFreeStreak(referenceDate: day)
+
+        if let lastCheckIn = streak.lastSmokeFreeCheckInDate,
+           Calendar.current.isDate(lastCheckIn, inSameDayAs: day) {
+            setTodayActionCompleted("smoke_free_today", isCompleted: true, on: day)
+            smokeFreeStreak = streak
+            return
+        }
+
+        switch streak.streakState {
+        case .active:
+            if let lastCheckIn = streak.lastSmokeFreeCheckInDate {
+                let lastDay = Calendar.current.startOfDay(for: lastCheckIn)
+                let daysBetween = Calendar.current.dateComponents([.day], from: lastDay, to: day).day ?? 0
+                streak.streakCount = daysBetween == 1 ? max(streak.streakCount + 1, 1) : 1
+            } else {
+                streak.streakCount = 1
+            }
+        case .onIce:
+            streak.streakCount = max(streak.streakCount, 1)
+        case .lost:
+            streak.streakCount = 1
+        }
+
+        streak.streakState = .active
+        streak.lastSmokeFreeCheckInDate = day
+        streak.onIceEnteredAt = nil
+        smokeFreeStreak = streak
+        setTodayActionCompleted("smoke_free_today", isCompleted: true, on: day)
+    }
+
     func resetProgress() {
         quitDate = Calendar.current.startOfDay(for: .now)
         cravingEvents = []
         slipEvents = []
         dailyCheckins = []
+        smokeFreeStreak = SmokeFreeStreak()
         sessionState.completedTodayActionsByDate = [:]
     }
 
@@ -1026,6 +1111,10 @@ final class AppState: ObservableObject {
         save(onboarding.state, for: .onboardingState)
     }
 
+    private func refreshSmokeFreeStreakState(referenceDate: Date = .now) {
+        smokeFreeStreak = evaluatedSmokeFreeStreak(referenceDate: referenceDate)
+    }
+
     private func save<T: Encodable>(_ value: T, for key: StorageKey) {
         if let data = try? JSONEncoder().encode(value) {
             UserDefaults.standard.set(data, forKey: key.rawValue)
@@ -1055,6 +1144,40 @@ final class AppState: ObservableObject {
 
     private static func sessionDayKey(for date: Date) -> String {
         sessionDayFormatter.string(from: Calendar.current.startOfDay(for: date))
+    }
+
+    private func evaluatedSmokeFreeStreak(referenceDate: Date = .now) -> SmokeFreeStreak {
+        var streak = smokeFreeStreak
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: referenceDate)
+
+        guard let lastCheckIn = streak.lastSmokeFreeCheckInDate else {
+            streak.streakCount = 0
+            streak.streakState = .lost
+            streak.onIceEnteredAt = nil
+            return streak
+        }
+
+        let lastDay = calendar.startOfDay(for: lastCheckIn)
+        let daysBetween = calendar.dateComponents([.day], from: lastDay, to: today).day ?? 0
+
+        switch daysBetween {
+        case ...0:
+            streak.streakState = .active
+            streak.onIceEnteredAt = nil
+        case 1:
+            streak.streakState = .active
+            streak.onIceEnteredAt = nil
+        case 2:
+            streak.streakState = .onIce
+            streak.onIceEnteredAt = streak.onIceEnteredAt ?? calendar.date(byAdding: .day, value: 1, to: lastDay)
+        default:
+            streak.streakState = .lost
+            streak.streakCount = 0
+            streak.onIceEnteredAt = nil
+        }
+
+        return streak
     }
 
     private static let sessionDayFormatter: DateFormatter = {

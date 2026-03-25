@@ -21,6 +21,7 @@ struct OnboardingView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var onboardingManager: OnboardingManager
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @EnvironmentObject private var notificationManager: LocalNotificationManager
     @EnvironmentObject private var analytics: AnalyticsService
     @FocusState private var focusedField: Field?
     @State private var navigationDirection: NavigationDirection = .forward
@@ -52,6 +53,7 @@ struct OnboardingView: View {
     @State private var profileSelectedQuitAttempt = "Never"
     @State private var hasTrackedOnboardingStart = false
     @State private var lastTrackedOnboardingStep: OnboardingStep?
+    @State private var notificationPromptIsHandling = false
 
     private let recognitionOptions = [
         "I keep saying “last time”",
@@ -498,13 +500,29 @@ struct OnboardingView: View {
                 stepLabel: stepLabel,
                 eyebrow: "14 Plan Ready",
                 title: "Your first plan is ready.",
-                subtitle: "",
+                subtitle: "Two quick steps set up reminders and access.",
                 primaryButtonTitle: "Continue",
                 primaryButtonEnabled: true,
                 onBack: goBack,
                 onContinue: continueForward
             ) {
                 planReadyContent
+            }
+
+        case .notificationPermission:
+            OnboardingScreenLayout(
+                currentStep: onboardingManager.currentStep.position,
+                totalSteps: OnboardingStep.progressTotal,
+                stepLabel: stepLabel,
+                eyebrow: "Stay Supported",
+                title: "Keep today in view.",
+                subtitle: "Turn on reminders, or skip and continue.",
+                primaryButtonTitle: "Turn on reminders",
+                primaryButtonEnabled: canContinue && !notificationPromptIsHandling,
+                onBack: goBack,
+                onContinue: continueForward
+            ) {
+                notificationPermissionContent
             }
 
         case .paywall:
@@ -514,7 +532,7 @@ struct OnboardingView: View {
                 stepLabel: stepLabel,
                 eyebrow: "Membership",
                 title: trimmedName.isEmpty ? "Begin the full journey." : "Begin the full journey, \(trimmedName).",
-                subtitle: "",
+                subtitle: "Choose full support, or continue with limited access for now.",
                 primaryButtonTitle: "Start free trial",
                 primaryButtonEnabled: true,
                 showsPrimaryButton: false,
@@ -530,8 +548,8 @@ struct OnboardingView: View {
                 totalSteps: OnboardingStep.progressTotal,
                 stepLabel: stepLabel,
                 eyebrow: "Before You Go",
-                title: "Before you go...",
-                subtitle: "",
+                title: "One last option before you finish.",
+                subtitle: "You can still continue with limited access if that feels right today.",
                 primaryButtonTitle: "Claim limited offer",
                 primaryButtonEnabled: true,
                 onBack: goBack,
@@ -1981,29 +1999,90 @@ struct OnboardingView: View {
     }
 
     private var planReadyContent: some View {
-        CardSection(fill: AnyShapeStyle(
-            LinearGradient(
-                colors: [Color.white.opacity(0.98), Color(red: 0.94, green: 0.94, blue: 1.0)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Your personal plan is ready.")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.ink)
+        VStack(spacing: 14) {
+            onboardingFinishSequence(current: .planReady)
 
-                Text(trimmedName.isEmpty
-                    ? "From here, the app will guide you through cravings, progress, and the hard moments that usually derail momentum."
-                    : "From here, the app will guide you through cravings, progress, and the hard moments that usually derail momentum for you.")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.secondaryText)
-                    .lineSpacing(4)
+            CardSection(fill: AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color.white.opacity(0.98), Color(red: 0.94, green: 0.94, blue: 1.0)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )) {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Your personal plan is ready.")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.ink)
 
-                onboardingPoint("Guided support", "The app keeps translating your answers into daily support.")
-                onboardingPoint("Rescue when it matters", "You get practical help exactly when the urge peaks.")
-                onboardingPoint("Progress that feels real", "Savings, streaks, and recovery stay visible.")
+                    Text(trimmedName.isEmpty
+                        ? "ayo is ready to support your daily check-in, rescue moments, and progress."
+                        : "ayo is ready to support your daily check-in, rescue moments, and progress.")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.secondaryText)
+                        .lineSpacing(3)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        onboardingPoint("Next: reminders", "Choose whether ayo should nudge your daily smoke-free check-in.")
+                        onboardingPoint("Then: access", "Start premium or continue with limited access.")
+                    }
+                }
             }
+        }
+    }
+
+    private var notificationPermissionContent: some View {
+        VStack(spacing: 14) {
+            onboardingFinishSequence(current: .notificationPermission)
+
+            CardSection(fill: AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color.white.opacity(0.99), Color(red: 0.95, green: 0.94, blue: 1.0)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )) {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.heroAccent.opacity(0.14))
+                                .frame(width: 52, height: 52)
+
+                            Image(systemName: "bell.badge.fill")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(Color.heroAccent)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Daily reminder support")
+                                .font(.headline)
+                                .foregroundStyle(Color.ink)
+
+                            Text("A calm nudge helps you stay consistent.")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.secondaryText)
+                        }
+                    }
+
+                    Text("Turn on reminders so you do not miss your daily smoke-free check-in. If your streak goes on ice, ayo can help you come back in time.")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.secondaryText)
+                        .lineSpacing(3)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        onboardingPoint("Do not miss the daily check-in", "A reminder arrives at the right time.")
+                        onboardingPoint("You can skip this", "If now is not the right moment, onboarding still continues normally.")
+                    }
+                }
+            }
+
+            Button("Not now") {
+                skipNotificationPermission()
+            }
+            .foregroundStyle(Color.secondaryText)
+            .font(.subheadline.weight(.semibold))
+            .padding(.vertical, 6)
+            .disabled(notificationPromptIsHandling)
         }
     }
 
@@ -2059,9 +2138,11 @@ struct OnboardingView: View {
     }
 
     private var paywallContent: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 14) {
+            onboardingFinishSequence(current: .paywall)
+
             PaywallGlowOrb()
-                .padding(.top, 10)
+                .frame(height: 68)
 
             CardSection(fill: AnyShapeStyle(
                 LinearGradient(
@@ -2070,24 +2151,23 @@ struct OnboardingView: View {
                     endPoint: .bottomTrailing
                 )
             )) {
-                VStack(alignment: .leading, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text("Stay with your plan")
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.ink)
 
-                        Text("Unlock the full support system and keep the momentum you just created.")
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                        Text("Choose full support now, or continue with limited access.")
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
                             .foregroundStyle(Color.secondaryText)
-                            .lineSpacing(3)
+                            .lineSpacing(2)
                     }
 
                     PaywallBenefitsList(
                         benefits: [
                             PaywallBenefit(icon: "chart.line.uptrend.xyaxis", title: "Track your real progress"),
                             PaywallBenefit(icon: "rosette", title: "Unlock all achievements"),
-                            PaywallBenefit(icon: "checkmark.shield", title: "Stay accountable every day"),
-                            PaywallBenefit(icon: "sparkles", title: "Build a habit that lasts")
+                            PaywallBenefit(icon: "checkmark.shield", title: "Stay accountable every day")
                         ]
                     )
 
@@ -2096,17 +2176,18 @@ struct OnboardingView: View {
                     if let selectedPackage = selectedOnboardingPaywallPackage {
                         PaywallPriceCard(
                             priceText: onboardingPaywallPriceText(for: selectedPackage),
-                            supportingText: onboardingPaywallSupportingText(for: selectedPackage)
+                            supportingText: onboardingPaywallSupportingText(for: selectedPackage),
+                            detailText: onboardingPaywallDetailText(for: selectedPackage)
                         )
                     } else if subscriptionManager.isLoadingOfferings {
-                        PaywallPriceCard(priceText: "Loading...", supportingText: "Checking plans")
+                        PaywallPriceCard(priceText: "Loading...", supportingText: "Checking plans", detailText: "Please wait a moment.")
                             .redacted(reason: .placeholder)
                     }
 
                     OnboardingPrimaryButton(
-                        title: subscriptionManager.purchasingPackageID == selectedOnboardingPaywallPackage?.storeProduct.productIdentifier
+                        title: onboardingPaywallIsPurchasingSelectedPackage
                             ? "Starting..."
-                            : "Start free trial",
+                            : onboardingPaywallCTATitle,
                         isEnabled: selectedOnboardingPaywallPackage != nil && !onboardingPaywallIsBusy,
                         action: startOnboardingPaywallPurchase
                     )
@@ -2121,30 +2202,17 @@ struct OnboardingView: View {
                     .disabled(onboardingPaywallIsBusy)
                     .buttonStyle(SecondaryButtonStyle(isEnabled: !onboardingPaywallIsBusy))
 
-                    if let errorMessage = subscriptionManager.errorMessage {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(errorMessage)
-                                .font(.footnote)
-                                .foregroundStyle(Color.secondaryText)
-                                .lineSpacing(3)
-
-                            Button("Try again") {
+                    if let notice = subscriptionManager.paywallNotice {
+                        PaywallNoticeCard(
+                            notice: notice,
+                            onRetry: {
                                 Task {
                                     await subscriptionManager.loadOfferings()
                                     syncOnboardingPaywallSelection()
                                 }
-                            }
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(Color.buttonBottom)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                        .background(Color.surfaceElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .stroke(Color.border, lineWidth: 1)
+                            },
+                            onRestore: restoreOnboardingPaywallPurchases,
+                            onContinue: completeOnboarding
                         )
                     }
 
@@ -2177,11 +2245,16 @@ struct OnboardingView: View {
         if let onboardingPaywallSelectedPackageID {
             return subscriptionManager.availablePackages.first(where: { $0.storeProduct.productIdentifier == onboardingPaywallSelectedPackageID })
         }
-        return subscriptionManager.monthlyPackage ?? subscriptionManager.annualPackage ?? subscriptionManager.availablePackages.first
+        return subscriptionManager.annualPackage ?? subscriptionManager.monthlyPackage ?? subscriptionManager.availablePackages.first
     }
 
     private var onboardingPaywallIsBusy: Bool {
         subscriptionManager.isLoadingOfferings || subscriptionManager.isRestoringPurchases || subscriptionManager.purchasingPackageID != nil
+    }
+
+    private var onboardingPaywallIsPurchasingSelectedPackage: Bool {
+        guard let selectedOnboardingPaywallPackage else { return false }
+        return subscriptionManager.purchasingPackageID == selectedOnboardingPaywallPackage.storeProduct.productIdentifier
     }
 
     @ViewBuilder
@@ -2208,7 +2281,7 @@ struct OnboardingView: View {
 
         return Button {
             onboardingPaywallSelectedPackageID = package.storeProduct.productIdentifier
-            subscriptionManager.clearError()
+            subscriptionManager.clearPaywallNotice()
             debugPrint("[Onboarding Paywall] selected package id: \(package.storeProduct.productIdentifier)")
         } label: {
             HStack(spacing: 12) {
@@ -2249,6 +2322,8 @@ struct OnboardingView: View {
 
     private var exitOfferContent: some View {
         VStack(spacing: 16) {
+            onboardingFinishSequence(current: .exitOffer)
+
             CardSection(fill: AnyShapeStyle(
                 LinearGradient(
                     colors: [Color.white.opacity(0.98), Color(red: 0.99, green: 0.94, blue: 0.90)],
@@ -2261,7 +2336,7 @@ struct OnboardingView: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(Color.ink)
 
-                    Text("Start today with 50% off your first month after the free trial. That gives your plan more time to become a real habit, not just a good intention.")
+                    Text("If you are not ready for the main plan yet, this keeps the door open with a lighter start. You can also continue with limited access today.")
                         .font(.subheadline)
                         .foregroundStyle(Color.secondaryText)
                         .lineSpacing(4)
@@ -2282,6 +2357,77 @@ struct OnboardingView: View {
             }
             .buttonStyle(SecondaryButtonStyle())
         }
+    }
+
+    private func onboardingFinishSequence(current: OnboardingStep) -> some View {
+        let steps: [(OnboardingStep, String)] = [
+            (.planReady, "Plan"),
+            (.notificationPermission, "Reminders"),
+            (.paywall, "Access"),
+            (.exitOffer, "Finish")
+        ]
+
+        return CardSection(fill: AnyShapeStyle(Color.white.opacity(0.58))) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Final setup")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+                    .textCase(.uppercase)
+                    .tracking(1.1)
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        ForEach(steps, id: \.0) { step, label in
+                            onboardingFinishSequenceStep(
+                                label: label,
+                                isCurrent: current == step,
+                                isComplete: current.position > step.position
+                            )
+                        }
+                    }
+
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: 10),
+                            GridItem(.flexible(), spacing: 10)
+                        ],
+                        spacing: 10
+                    ) {
+                        ForEach(steps, id: \.0) { step, label in
+                            onboardingFinishSequenceStep(
+                                label: label,
+                                isCurrent: current == step,
+                                isComplete: current.position > step.position
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func onboardingFinishSequenceStep(
+        label: String,
+        isCurrent: Bool,
+        isComplete: Bool
+    ) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: isComplete ? "checkmark.circle.fill" : "circle.fill")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(isCurrent || isComplete ? Color.buttonBottom : Color.borderStrong)
+
+            Text(label)
+                .font(.caption.weight(isCurrent ? .bold : .semibold))
+                .foregroundStyle(isCurrent ? Color.ink : Color.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 44, alignment: .leading)
+        .background(isCurrent ? Color.buttonBottom.opacity(0.10) : Color.white.opacity(0.55))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func selectionList(
@@ -2576,7 +2722,7 @@ struct OnboardingView: View {
 
     private var canContinue: Bool {
         switch onboardingManager.currentStep {
-        case .hook, .breakLoopHold, .planReady, .paywall, .exitOffer:
+        case .hook, .breakLoopHold, .planReady, .notificationPermission, .paywall, .exitOffer:
             return true
         case .loading:
             return planGenerationProgress >= 100
@@ -2617,6 +2763,7 @@ struct OnboardingView: View {
         case .profileQuestions: return "Profile"
         case .loading: return "Loading"
         case .planReady: return "Ready"
+        case .notificationPermission: return "Reminders"
         case .paywall: return "Paywall"
         case .exitOffer: return "Offer"
         }
@@ -3171,6 +3318,11 @@ struct OnboardingView: View {
             return
         }
 
+        if onboardingManager.currentStep == .notificationPermission {
+            requestNotificationPermission()
+            return
+        }
+
         if onboardingManager.currentStep == .exitOffer {
             completeOnboarding()
             return
@@ -3231,6 +3383,35 @@ struct OnboardingView: View {
         }
     }
 
+    private func requestNotificationPermission() {
+        guard !notificationPromptIsHandling else { return }
+
+        notificationPromptIsHandling = true
+        onboardingManager.state.notificationsChoice = "accepted"
+
+        Task {
+            await notificationManager.setNotificationsEnabled(true)
+
+            await MainActor.run {
+                notificationPromptIsHandling = false
+                navigationDirection = .forward
+                withAnimation(OnboardingPageTransition.animation) {
+                    onboardingManager.nextStep()
+                }
+            }
+        }
+    }
+
+    private func skipNotificationPermission() {
+        guard !notificationPromptIsHandling else { return }
+
+        onboardingManager.state.notificationsChoice = "skipped"
+        navigationDirection = .forward
+        withAnimation(OnboardingPageTransition.animation) {
+            onboardingManager.nextStep()
+        }
+    }
+
     private func cancelBreakLoopHoldIfNeeded() {
         guard !breakLoopHoldCompleted else { return }
 
@@ -3286,8 +3467,8 @@ struct OnboardingView: View {
 
     private func syncOnboardingPaywallSelection() {
         let preferredPackage = selectedOnboardingPaywallPackage
-            ?? subscriptionManager.monthlyPackage
             ?? subscriptionManager.annualPackage
+            ?? subscriptionManager.monthlyPackage
             ?? subscriptionManager.availablePackages.first
         onboardingPaywallSelectedPackageID = preferredPackage?.storeProduct.productIdentifier
         if let onboardingPaywallSelectedPackageID {
@@ -3318,7 +3499,48 @@ struct OnboardingView: View {
     }
 
     private func onboardingPaywallSupportingText(for package: Package) -> String {
-        package.storeProduct.introductoryDiscount == nil ? "Current plan" : "Free trial available"
+        if let introductoryDiscount = package.storeProduct.introductoryDiscount,
+           introductoryDiscount.paymentMode == .freeTrial {
+            return "\(onboardingSubscriptionPeriodText(for: introductoryDiscount.subscriptionPeriod)) free trial"
+        }
+
+        return package.packageType == .annual ? "Billed yearly" : "Billed monthly"
+    }
+
+    private func onboardingPaywallDetailText(for package: Package) -> String? {
+        switch package.packageType {
+        case .annual:
+            return "Renews yearly."
+        case .monthly:
+            return "Renews monthly."
+        default:
+            return nil
+        }
+    }
+
+    private var onboardingPaywallCTATitle: String {
+        guard let selectedOnboardingPaywallPackage else { return "Continue" }
+        return selectedOnboardingPaywallPackage.storeProduct.introductoryDiscount?.paymentMode == .freeTrial
+            ? "Start free trial"
+            : "Continue"
+    }
+
+    private func onboardingSubscriptionPeriodText(for period: SubscriptionPeriod) -> String {
+        let unit: String
+        switch period.unit {
+        case .day:
+            unit = period.value == 1 ? "day" : "days"
+        case .week:
+            unit = period.value == 1 ? "week" : "weeks"
+        case .month:
+            unit = period.value == 1 ? "month" : "months"
+        case .year:
+            unit = period.value == 1 ? "year" : "years"
+        @unknown default:
+            unit = "period"
+        }
+
+        return "\(period.value)-\(unit)"
     }
 
     private func trackOnboardingStepViewed(_ step: OnboardingStep) {
@@ -3347,6 +3569,7 @@ struct OnboardingView: View {
         case .profileQuestions: return "profile_questions"
         case .loading: return "loading"
         case .planReady: return "plan_ready"
+        case .notificationPermission: return "notification_permission"
         case .paywall: return "paywall"
         case .exitOffer: return "exitOffer"
         }

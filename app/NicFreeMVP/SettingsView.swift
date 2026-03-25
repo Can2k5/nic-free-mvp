@@ -164,7 +164,7 @@ struct SettingsView: View {
             return "Signed in with \(user.provider.title)"
         }
 
-        return "Sign in and manage your account details"
+        return "Optional sign-in with Apple or Google"
     }
 
     private var startDateText: String {
@@ -492,7 +492,7 @@ private struct AppInformationView: View {
                     ) {
                         SettingsGroupCard {
                             VStack(alignment: .leading, spacing: AppSpacing.md) {
-                                detailRow(title: "App", value: "Nic Free MVP")
+                                detailRow(title: "App", value: appNameText)
                                 detailRow(title: "Version", value: appVersionText)
                                 ActionCard(title: "Privacy Policy", icon: "hand.raised", showsChevron: true)
                                 ActionCard(title: "Terms", icon: "doc.text", showsChevron: true)
@@ -513,6 +513,12 @@ private struct AppInformationView: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
         return "\(version) (\(build))"
+    }
+
+    private var appNameText: String {
+        let displayName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+        let bundleName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+        return displayName ?? bundleName ?? "Ayo"
     }
 
     private func detailRow(title: String, value: String) -> some View {
@@ -658,6 +664,9 @@ private struct MotivationSettingsView: View {
 
 private struct AppSettingsView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @EnvironmentObject private var notificationManager: LocalNotificationManager
+    @State private var showingPaywall = false
 
     var body: some View {
         ZStack {
@@ -669,21 +678,64 @@ private struct AppSettingsView: View {
                         title: "App settings",
                         subtitle: "Choose how Nic Free should look across the app."
                     ) {
-                        SettingsGroupCard {
-                            VStack(spacing: 0) {
-                                ForEach(Array(ThemeMode.allCases.enumerated()), id: \.element) { index, mode in
-                                    SettingsAppearanceOptionRow(
-                                        mode: mode,
-                                        isSelected: themeManager.mode == mode
-                                    ) {
-                                        withAnimation(MicroAnimation.selection) {
-                                            themeManager.mode = mode
+                        VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                            SettingsGroupCard {
+                                VStack(spacing: 0) {
+                                    ForEach(Array(ThemeMode.allCases.enumerated()), id: \.element) { index, mode in
+                                        SettingsAppearanceOptionRow(
+                                            mode: mode,
+                                            isSelected: themeManager.mode == mode,
+                                            isLocked: mode == .dark && subscriptionManager.isFree
+                                        ) {
+                                            if mode == .dark && subscriptionManager.isFree {
+                                                showingPaywall = true
+                                            } else {
+                                                withAnimation(MicroAnimation.selection) {
+                                                    themeManager.mode = mode
+                                                }
+                                            }
+                                        }
+
+                                        if index < ThemeMode.allCases.count - 1 {
+                                            SettingsDivider()
                                         }
                                     }
+                                }
+                            }
 
-                                    if index < ThemeMode.allCases.count - 1 {
-                                        SettingsDivider()
-                                    }
+                            SettingsGroupCard {
+                                VStack(spacing: 0) {
+                                    SettingsToggleRow(
+                                        title: "Notifications",
+                                        subtitle: "Allow calm reminders from ayo.",
+                                        leadingIcon: "bell.badge",
+                                        isOn: Binding(
+                                            get: { notificationManager.notificationsEnabled },
+                                            set: { newValue in
+                                                Task {
+                                                    await notificationManager.setNotificationsEnabled(newValue)
+                                                }
+                                            }
+                                        )
+                                    )
+
+                                    SettingsDivider()
+
+                                    SettingsToggleRow(
+                                        title: "Daily reminder",
+                                        subtitle: "Repeat the daily smoke-free check-in reminder.",
+                                        leadingIcon: "calendar.badge.clock",
+                                        isOn: Binding(
+                                            get: { notificationManager.notificationsEnabled && notificationManager.dailyReminderEnabled },
+                                            set: { newValue in
+                                                Task {
+                                                    await notificationManager.setDailyReminderEnabled(newValue)
+                                                }
+                                            }
+                                        )
+                                    )
+                                    .disabled(!notificationManager.notificationsEnabled)
+                                    .opacity(notificationManager.notificationsEnabled ? 1 : 0.6)
                                 }
                             }
                         }
@@ -696,6 +748,29 @@ private struct AppSettingsView: View {
         .navigationTitle("App Settings")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
+        .fullScreenCover(isPresented: $showingPaywall) {
+            PaywallView(onClose: { showingPaywall = false })
+                .presentationBackground(.clear)
+        }
+    }
+}
+
+private struct SettingsToggleRow: View {
+    let title: String
+    let subtitle: String
+    let leadingIcon: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        SettingsRow(
+            title: title,
+            subtitle: subtitle,
+            leadingIcon: leadingIcon
+        ) {
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .tint(Color.buttonBottom)
+        }
     }
 }
 
@@ -968,6 +1043,7 @@ private struct MotivationReasonCard: View {
 private struct SettingsAppearanceOptionRow: View {
     let mode: ThemeMode
     let isSelected: Bool
+    let isLocked: Bool
     let action: () -> Void
 
     var body: some View {
@@ -978,7 +1054,7 @@ private struct SettingsAppearanceOptionRow: View {
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                         .foregroundStyle(isSelected ? Color.buttonBottom : Color.ink)
 
-                    Text(mode.subtitle)
+                    Text(isLocked ? "Premium feature" : mode.subtitle)
                         .font(.caption)
                         .foregroundStyle(isSelected ? Color.accentInk : Color.secondaryText)
                         .multilineTextAlignment(.leading)
@@ -987,19 +1063,28 @@ private struct SettingsAppearanceOptionRow: View {
                 Spacer()
 
                 ZStack {
-                    Circle()
-                        .fill(isSelected ? Color.buttonBottom : Color.surfaceMuted)
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            Circle()
-                                .stroke(isSelected ? Color.buttonBottom.opacity(0.18) : Color.border.opacity(0.65), lineWidth: isSelected ? 6 : 1)
-                        )
-
-                    if isSelected {
-                        Image(systemName: "checkmark")
+                    if isLocked {
+                        Image(systemName: "lock.fill")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.white)
-                            .transition(.scale.combined(with: .opacity))
+                            .foregroundStyle(Color.secondaryText)
+                            .frame(width: 28, height: 28)
+                            .background(Color.surfaceMuted)
+                            .clipShape(Circle())
+                    } else {
+                        Circle()
+                            .fill(isSelected ? Color.buttonBottom : Color.surfaceMuted)
+                            .frame(width: 28, height: 28)
+                            .overlay(
+                                Circle()
+                                    .stroke(isSelected ? Color.buttonBottom.opacity(0.18) : Color.border.opacity(0.65), lineWidth: isSelected ? 6 : 1)
+                            )
+
+                        if isSelected {
+                            Image(systemName: "checkmark")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Color.white)
+                                .transition(.scale.combined(with: .opacity))
+                        }
                     }
                 }
             }

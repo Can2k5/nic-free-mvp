@@ -2,7 +2,16 @@ import SwiftUI
 
 struct RescueOptionsView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @Binding var selectedTab: RootTabView.Tab
+
+    @AppStorage("free_rescue_uses") private var freeRescueUses = 0
+    @State private var selectedDestination: RescueDestination?
+    @State private var showingPaywall = false
+
+    private var rescueIsLocked: Bool {
+        subscriptionManager.isFree && freeRescueUses >= 1
+    }
 
     var body: some View {
         NavigationStack {
@@ -29,6 +38,22 @@ struct RescueOptionsView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(item: $selectedDestination) { destination in
+                switch destination {
+                case .rideItOut:
+                    CravingRescueView(selectedTab: $selectedTab)
+                case .settleBody:
+                    CalmDownView(selectedTab: $selectedTab)
+                case .rememberWhy:
+                    RememberWhyView()
+                case .changeMoment:
+                    ChangeMomentView()
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showingPaywall) {
+            PaywallView(onClose: { showingPaywall = false })
+                .presentationBackground(.clear)
         }
     }
 
@@ -136,18 +161,14 @@ struct RescueOptionsView: View {
                 .textCase(.uppercase)
                 .tracking(0.9)
 
-            NavigationLink {
-                CravingRescueView(selectedTab: $selectedTab)
-            } label: {
-                RescueOptionEntryCard(
-                    title: "Ride it out",
-                    subtitle: "Pause for 90 seconds and let the wave pass a little.",
-                    symbol: "hourglass",
-                    isPrimary: true,
-                    supportingText: primaryRecommendationWhy
-                )
-            }
-            .buttonStyle(CardPressButtonStyle())
+            rescueOptionButton(
+                destination: .rideItOut,
+                title: "Ride it out",
+                subtitle: "Pause for 90 seconds and let the wave pass a little.",
+                symbol: "hourglass",
+                isPrimary: true,
+                supportingText: primaryRecommendationWhy
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -158,45 +179,39 @@ struct RescueOptionsView: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
 
+            if subscriptionManager.isFree {
+                Text(freeRescueUses == 0 ? "Free access includes one rescue session." : "Your free rescue session has been used.")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(rescueIsLocked ? Color.buttonBottom : Color.secondaryText)
+            }
+
             VStack(spacing: AppSpacing.md) {
-                NavigationLink {
-                    CalmDownView(selectedTab: $selectedTab)
-                } label: {
-                    RescueOptionEntryCard(
-                        title: "Settle your body",
-                        subtitle: "Lower the intensity before you decide anything.",
-                        symbol: "wind",
-                        isPrimary: false,
-                        supportingText: "A grounding step when your body feels ahead of you."
-                    )
-                }
-                .buttonStyle(CardPressButtonStyle())
+                rescueOptionButton(
+                    destination: .settleBody,
+                    title: "Settle your body",
+                    subtitle: "Lower the intensity before you decide anything.",
+                    symbol: "wind",
+                    isPrimary: false,
+                    supportingText: "A grounding step when your body feels ahead of you."
+                )
 
-                NavigationLink {
-                    RememberWhyView()
-                } label: {
-                    RescueOptionEntryCard(
-                        title: "Come back to your reason",
-                        subtitle: "Reconnect with what matters more than this moment.",
-                        symbol: "heart",
-                        isPrimary: false,
-                        supportingText: "A helpful choice when you need perspective and steadiness."
-                    )
-                }
-                .buttonStyle(CardPressButtonStyle())
+                rescueOptionButton(
+                    destination: .rememberWhy,
+                    title: "Come back to your reason",
+                    subtitle: "Reconnect with what matters more than this moment.",
+                    symbol: "heart",
+                    isPrimary: false,
+                    supportingText: "A helpful choice when you need perspective and steadiness."
+                )
 
-                NavigationLink {
-                    ChangeMomentView()
-                } label: {
-                    RescueOptionEntryCard(
-                        title: "Change the moment",
-                        subtitle: "Shift the pattern with one small action.",
-                        symbol: "bolt",
-                        isPrimary: false,
-                        supportingText: "A good fit when a quick change in context could help."
-                    )
-                }
-                .buttonStyle(CardPressButtonStyle())
+                rescueOptionButton(
+                    destination: .changeMoment,
+                    title: "Change the moment",
+                    subtitle: "Shift the pattern with one small action.",
+                    symbol: "bolt",
+                    isPrimary: false,
+                    supportingText: "A good fit when a quick change in context could help."
+                )
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,6 +227,83 @@ struct RescueOptionsView: View {
                 .foregroundStyle(Color.secondaryText)
         }
     }
+
+    private func openRescue(_ destination: RescueDestination) {
+        guard !(subscriptionManager.isFree && freeRescueUses >= 1) else {
+            showingPaywall = true
+            return
+        }
+
+        if subscriptionManager.isFree {
+            freeRescueUses += 1
+        }
+
+        selectedDestination = destination
+    }
+
+    private func rescueOptionCard(
+        title: String,
+        subtitle: String,
+        symbol: String,
+        isPrimary: Bool,
+        supportingText: String
+    ) -> some View {
+        PremiumLockedContent(
+            isLocked: rescueIsLocked,
+            message: "Unlock unlimited rescue support.",
+            action: { showingPaywall = true }
+        ) {
+            RescueOptionEntryCard(
+                title: title,
+                subtitle: subtitle,
+                symbol: symbol,
+                isPrimary: isPrimary,
+                supportingText: supportingText
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func rescueOptionButton(
+        destination: RescueDestination,
+        title: String,
+        subtitle: String,
+        symbol: String,
+        isPrimary: Bool,
+        supportingText: String
+    ) -> some View {
+        if rescueIsLocked {
+            rescueOptionCard(
+                title: title,
+                subtitle: subtitle,
+                symbol: symbol,
+                isPrimary: isPrimary,
+                supportingText: supportingText
+            )
+        } else {
+            Button {
+                openRescue(destination)
+            } label: {
+                RescueOptionEntryCard(
+                    title: title,
+                    subtitle: subtitle,
+                    symbol: symbol,
+                    isPrimary: isPrimary,
+                    supportingText: supportingText
+                )
+            }
+            .buttonStyle(CardPressButtonStyle())
+        }
+    }
+}
+
+private enum RescueDestination: Hashable, Identifiable {
+    case rideItOut
+    case settleBody
+    case rememberWhy
+    case changeMoment
+
+    var id: Self { self }
 }
 
 private struct RescueOptionEntryCard: View {

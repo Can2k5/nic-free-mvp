@@ -2,7 +2,10 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @Binding var selectedTab: RootTabView.Tab
+    @State private var showingPaywall = false
+    @State private var hasShownLockedProgressPaywallThisSession = false
 
     private var displayName: String {
         let trimmed = appState.profileName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -26,20 +29,23 @@ struct ProfileView: View {
                         journeyHero
                         .softEntrance(delay: 0.02, distance: 12, initialScale: 0.985)
 
-                        journeyKeyMetrics
+                        journeyCheckInContinuity
                             .softEntrance(delay: 0.08, distance: 14, initialScale: 0.98)
 
-                        journeyPatternInsight
+                        journeyKeyMetrics
                             .softEntrance(delay: 0.14, distance: 16, initialScale: 0.98)
 
-                        journeyTriggersAndContext
+                        journeyProgressStory
                             .softEntrance(delay: 0.2, distance: 16, initialScale: 0.98)
 
-                        journeyProgressStory
+                        journeyPatternInsight
                             .softEntrance(delay: 0.26, distance: 16, initialScale: 0.98)
 
-                        journeyNextStep
+                        journeyTriggersAndContext
                             .softEntrance(delay: 0.32, distance: 16, initialScale: 0.98)
+
+                        journeyNextStep
+                            .softEntrance(delay: 0.38, distance: 16, initialScale: 0.98)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, AppSpacing.lg)
@@ -47,6 +53,10 @@ struct ProfileView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+        }
+        .fullScreenCover(isPresented: $showingPaywall) {
+            PaywallView(onClose: { showingPaywall = false })
+                .presentationBackground(.clear)
         }
     }
 
@@ -67,7 +77,7 @@ struct ProfileView: View {
     private var journeyHero: some View {
         HeroCard(
             eyebrow: displayName,
-            title: "Day \(max(appState.nicotineFreeDays, 1))",
+            title: appState.smokeFreeStreakCount > 0 ? "\(appState.smokeFreeStreakCount)-day streak" : "Your streak",
             subtitle: heroSupportLine,
             icon: "person.crop.circle.fill",
             alignment: .center
@@ -79,6 +89,10 @@ struct ProfileView: View {
                 Text("Started \(startDateText)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.heroSecondaryText)
+
+                Text(appState.smokeFreeStreakStatusLine)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(streakStatusColor)
             }
             .frame(maxWidth: .infinity)
         }
@@ -87,9 +101,9 @@ struct ProfileView: View {
     private var journeyKeyMetrics: some View {
         KPIGrid {
             KPIBlock(
-                value: appState.smokeFreeTimeText,
+                value: "\(appState.smokeFreeStreakCount)",
                 label: "Streak",
-                detail: "nicotine-free",
+                detail: streakDetailText,
                 icon: "clock.fill"
             )
             KPIBlock(
@@ -107,26 +121,56 @@ struct ProfileView: View {
         }
     }
 
-    private var journeyPatternInsight: some View {
+    private var journeyCheckInContinuity: some View {
         InsightCard(
-            title: "What your pattern suggests",
-            subtitle: hasPatternData ? "A simple read on what has been showing up lately." : "This will fill in over time as you log more cravings.",
-            icon: "waveform.path.ecg"
+            title: "Recent continuity",
+            subtitle: continuitySubtitle,
+            icon: "calendar.badge.clock"
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.md) {
-                if hasPatternData {
-                    ForEach(patternInsights, id: \.self) { insight in
-                        JourneyInsightLine(text: insight)
+                HStack(spacing: 10) {
+                    ForEach(recentCheckInDays) { day in
+                        recentCheckInDayPill(day)
                     }
-                } else {
-                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                        Text("You are just getting started.")
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(Color.ink)
+                }
 
-                        Text("Log a few cravings and this section will start to reflect your rhythm.")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.secondaryText)
+                HStack(spacing: 10) {
+                    continuityLegend(label: "Checked in", color: Color.buttonBottom)
+                    continuityLegend(label: "Missed", color: Color.surfaceMuted)
+                    if appState.smokeFreeStreakState == .onIce {
+                        continuityLegend(label: "On ice", color: Color.orange.opacity(0.9))
+                    }
+                }
+            }
+        }
+    }
+
+    private var journeyPatternInsight: some View {
+        PremiumLockedContent(
+            isLocked: subscriptionManager.isFree,
+            message: "Unlock deeper pattern insights.",
+            action: { showingPaywall = true }
+        ) {
+            InsightCard(
+                title: "What your pattern suggests",
+                subtitle: hasPatternData ? "A simple read on what has been showing up lately." : "This will fill in over time as you log more cravings.",
+                icon: "waveform.path.ecg"
+            ) {
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    if hasPatternData {
+                        ForEach(patternInsights, id: \.self) { insight in
+                            JourneyInsightLine(text: insight)
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            Text("You are just getting started.")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(Color.ink)
+
+                            Text("Log a few cravings and this section will start to reflect your rhythm.")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.secondaryText)
+                        }
                     }
                 }
             }
@@ -134,58 +178,81 @@ struct ProfileView: View {
     }
 
     private var journeyTriggersAndContext: some View {
-        InsightCard(
-            title: "Triggers and context",
-            subtitle: hasPatternData ? "The situations most tied to your recent cravings." : "This will get more personal as you keep logging.",
-            icon: "bolt.badge.clock"
+        PremiumLockedContent(
+            isLocked: subscriptionManager.isFree,
+            message: "Unlock trigger and context details.",
+            action: { showingPaywall = true }
         ) {
-            VStack(spacing: AppSpacing.sm) {
-                contextRow(
-                    title: "Most common trigger",
-                    value: hasPatternData ? appState.strongestTriggerThisWeekText : "Your common triggers will show up here",
-                    symbol: "bolt.fill"
-                )
+            InsightCard(
+                title: "Triggers and context",
+                subtitle: hasPatternData ? "The situations most tied to your recent cravings." : "This will get more personal as you keep logging.",
+                icon: "bolt.badge.clock"
+            ) {
+                VStack(spacing: AppSpacing.sm) {
+                    contextRow(
+                        title: "Most common trigger",
+                        value: hasPatternData ? appState.strongestTriggerThisWeekText : "Your common triggers will show up here",
+                        symbol: "bolt.fill"
+                    )
 
-                contextRow(
-                    title: "Most common time",
-                    value: hasPatternData ? appState.mostCommonTimeOfCravingTitle : "Your timing patterns will show up here",
-                    symbol: "clock.fill"
-                )
+                    contextRow(
+                        title: "Most common time",
+                        value: hasPatternData ? appState.mostCommonTimeOfCravingTitle : "Your timing patterns will show up here",
+                        symbol: "clock.fill"
+                    )
 
-                contextRow(
-                    title: "Recent check-in",
-                    value: recentCheckinContext,
-                    symbol: "waveform.path.ecg"
-                )
+                    contextRow(
+                        title: "Recent check-in",
+                        value: recentCheckinContext,
+                        symbol: "waveform.path.ecg"
+                    )
+                }
             }
         }
     }
 
     private var journeyProgressStory: some View {
-        InsightCard(
-            title: "Your progress story",
-            subtitle: "A quick read on how things are moving.",
-            icon: "book.closed"
+        PremiumLockedContent(
+            isLocked: subscriptionManager.isFree,
+            message: "Unlock your full progress story.",
+            action: { showingPaywall = true }
         ) {
-            VStack(alignment: .leading, spacing: AppSpacing.md) {
-                Text(progressStoryHeadline)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(Color.ink)
+            InsightCard(
+                title: "Your progress story",
+                subtitle: "A quick read on how things are moving.",
+                icon: "book.closed"
+            ) {
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    Text(progressStoryHeadline)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Color.ink)
 
-                Text(progressStoryDetail)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.secondaryText)
+                    Text(progressStoryDetail)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.secondaryText)
 
-                if let highlightedReason = appState.highlightedQuitReason {
-                    Text(highlightedReason)
+                    Text(continuityStatusLine)
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.buttonBottom)
+                        .foregroundStyle(streakStatusColor)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(Color.buttonBottom.opacity(0.10))
+                        .background(streakStatusColor.opacity(0.12))
                         .clipShape(Capsule())
+
+                    if let highlightedReason = appState.highlightedQuitReason {
+                        Text(highlightedReason)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.buttonBottom)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.buttonBottom.opacity(0.10))
+                            .clipShape(Capsule())
+                    }
                 }
             }
+        }
+        .onAppear {
+            triggerLockedProgressPaywallIfNeeded()
         }
     }
 
@@ -205,6 +272,15 @@ struct ProfileView: View {
     }
 
     private var heroSupportLine: String {
+        switch appState.smokeFreeStreakState {
+        case .onIce:
+            return "Your streak is still recoverable today."
+        case .lost:
+            return "A fresh streak can start with the next smoke-free check-in."
+        case .active:
+            break
+        }
+
         if appState.nicotineFreeDays >= 7 {
             return "You are building a steadier rhythm."
         }
@@ -249,6 +325,12 @@ struct ProfileView: View {
     }
 
     private var progressStoryHeadline: String {
+        if appState.smokeFreeStreakState == .onIce {
+            return "Your streak is on ice, but it is still in reach."
+        }
+        if appState.didSmokeFreeCheckInToday {
+            return "You checked in today and kept your continuity visible."
+        }
         if appState.nicotineFreeDays >= 7 {
             return "You have held this change for over a week."
         }
@@ -259,6 +341,12 @@ struct ProfileView: View {
     }
 
     private var progressStoryDetail: String {
+        if appState.smokeFreeStreakState == .onIce {
+            return "A smoke-free check-in today brings the streak back to active. You are not starting from zero."
+        }
+        if appState.didSmokeFreeCheckInToday {
+            return "Today is already counted. That kind of visible follow-through is what keeps a streak feeling real."
+        }
         if let nextAchievement = appState.nextJourneyAchievement {
             return "Your next progress marker is \(nextAchievement.title.lowercased()). You are already moving toward it."
         }
@@ -306,7 +394,172 @@ struct ProfileView: View {
         }
         .padding(14)
         .background(Color.surfaceMuted)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func triggerLockedProgressPaywallIfNeeded() {
+        guard subscriptionManager.isFree, !hasShownLockedProgressPaywallThisSession else { return }
+        hasShownLockedProgressPaywallThisSession = true
+        showingPaywall = true
+    }
+
+    private var streakDetailText: String {
+        switch appState.smokeFreeStreakState {
+        case .active:
+            return "active"
+        case .onIce:
+            return "on ice"
+        case .lost:
+            return "restart ready"
+        }
+    }
+
+    private var streakStatusColor: Color {
+        switch appState.smokeFreeStreakState {
+        case .active:
+            return Color.heroSecondaryText
+        case .onIce:
+            return Color.orange
+        case .lost:
+            return Color.secondaryText
+        }
+    }
+
+    private var continuitySubtitle: String {
+        switch appState.smokeFreeStreakState {
+        case .active:
+            return appState.didSmokeFreeCheckInToday
+                ? "Today is already marked smoke-free."
+                : "Your recent check-ins show how the streak is holding."
+        case .onIce:
+            return "One missed day put the streak on ice, but it can still recover."
+        case .lost:
+            return "A fresh check-in restarts the chain from today."
+        }
+    }
+
+    private var continuityStatusLine: String {
+        switch appState.smokeFreeStreakState {
+        case .active:
+            return appState.didSmokeFreeCheckInToday ? "Checked in today" : "Still active today"
+        case .onIce:
+            return "On ice, still recoverable"
+        case .lost:
+            return "Ready for a fresh start"
+        }
+    }
+
+    private var recentCheckInDays: [RecentCheckInDay] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let checkedInDays = Set(
+            appState.dailyCheckins.map { calendar.startOfDay(for: $0.date) }
+        )
+
+        return (0..<7).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            let status: RecentCheckInDay.Status
+
+            if checkedInDays.contains(date) {
+                status = .checkedIn
+            } else if offset == 0 && appState.smokeFreeStreakState == .onIce {
+                status = .onIce
+            } else {
+                status = .missed
+            }
+
+            return RecentCheckInDay(date: date, status: status)
+        }
+        .reversed()
+    }
+
+    private func recentCheckInDayPill(_ day: RecentCheckInDay) -> some View {
+        VStack(spacing: 8) {
+            Text(day.weekdayLabel)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(day.status.fillColor)
+                    .frame(width: 38, height: 46)
+
+                Image(systemName: day.status.symbolName)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(day.status.symbolColor)
+            }
+
+            Text(day.dayNumberLabel)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func continuityLegend(label: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+        }
+    }
+}
+
+private struct RecentCheckInDay: Identifiable {
+    enum Status {
+        case checkedIn
+        case missed
+        case onIce
+
+        var fillColor: Color {
+            switch self {
+            case .checkedIn:
+                return Color.buttonBottom.opacity(0.16)
+            case .missed:
+                return Color.surfaceMuted
+            case .onIce:
+                return Color.orange.opacity(0.18)
+            }
+        }
+
+        var symbolName: String {
+            switch self {
+            case .checkedIn:
+                return "checkmark"
+            case .missed:
+                return "minus"
+            case .onIce:
+                return "snowflake"
+            }
+        }
+
+        var symbolColor: Color {
+            switch self {
+            case .checkedIn:
+                return Color.buttonBottom
+            case .missed:
+                return Color.secondaryText.opacity(0.75)
+            case .onIce:
+                return Color.orange
+            }
+        }
+    }
+
+    let date: Date
+    let status: Status
+
+    var id: Date { date }
+
+    var weekdayLabel: String {
+        date.formatted(.dateTime.weekday(.narrow))
+    }
+
+    var dayNumberLabel: String {
+        date.formatted(.dateTime.day())
     }
 }
 

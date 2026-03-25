@@ -114,7 +114,7 @@ struct HomeView: View {
                         homeDailyCheckIn
                             .softEntrance(delay: 0.11, distance: 16, initialScale: 0.98)
 
-                        homeTodayFocus
+                        homeProgressSnapshot
                             .softEntrance(delay: 0.18, distance: 16, initialScale: 0.98)
 
                         if shouldShowRescueEntry {
@@ -122,7 +122,7 @@ struct HomeView: View {
                                 .softEntrance(delay: 0.24, distance: 16, initialScale: 0.98)
                         }
 
-                        homeProgressSnapshot
+                        homeTodayFocus
                             .softEntrance(delay: 0.29, distance: 16, initialScale: 0.98)
 
                         utilityFooter
@@ -241,8 +241,8 @@ struct HomeView: View {
     private var homeHeroSummary: some View {
         HeroCard(
             eyebrow: "Daily dashboard",
-            title: "Day \(max(appState.nicotineFreeDays, 1))",
-            subtitle: "nicotine-free"
+            title: heroStreakTitle,
+            subtitle: appState.smokeFreeStreakStatusLine
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 MomentumCurveProgress(
@@ -354,12 +354,58 @@ struct HomeView: View {
 
     private var homeDailyCheckIn: some View {
         ActionCard(
-            title: todayCheckInTitle,
+            title: "Today’s check-in",
             subtitle: latestCheckinText,
             icon: "waveform.path.ecg",
             showsChevron: false
         ) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Today")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.secondaryText)
+                        .textCase(.uppercase)
+                        .tracking(0.9)
+
+                    Text(dailyCheckInStatusText)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(dailyCheckInStatusColor)
+                }
+
+                Button {
+                    toggleSmokeFreeToday()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: isSmokeFreeMarkedToday ? "checkmark.circle.fill" : "circle")
+                            .font(.headline.weight(.semibold))
+
+                        Text(smokeFreeTodayActionTitle)
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .foregroundStyle(Color.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 17)
+                    .background(
+                        LinearGradient(
+                            colors: isSmokeFreeMarkedToday
+                                ? [Color.buttonTop.opacity(0.88), Color.buttonBottom.opacity(0.94)]
+                                : [Color.buttonTop, Color.buttonBottom],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(
+                                isSmokeFreeMarkedToday ? Color.cardBackground.opacity(0.24) : Color.buttonBottom.opacity(0.2),
+                                lineWidth: 1
+                            )
+                    )
+                    .shadow(color: Color.buttonBottom.opacity(isSmokeFreeMarkedToday ? 0.14 : 0.2), radius: 14, x: 0, y: 8)
+                }
+                .buttonStyle(CardPressButtonStyle())
+
                 if hasCheckinToday {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
@@ -412,6 +458,21 @@ struct HomeView: View {
                 }
             }
         }
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.accentWash.opacity(0.26),
+                            Color.cardBackground.opacity(0.42),
+                            Color.surfaceElevated.opacity(0.18)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .padding(.horizontal, 4)
+        )
     }
 
     private var homeCravingQuickAction: some View {
@@ -422,7 +483,7 @@ struct HomeView: View {
                 title: "Need support right now?",
                 subtitle: "Open rescue and take the next small step",
                 icon: "bolt.heart.fill",
-                emphasizesAction: true
+                emphasizesAction: false
             )
         }
         .buttonStyle(CardPressButtonStyle())
@@ -433,8 +494,8 @@ struct HomeView: View {
         let isCompleted = isTodayActionCompleted(action)
 
         return ActionCard(
-            title: todayFocusTitle,
-            subtitle: todayFocusSubtitle,
+            title: "A small extra step",
+            subtitle: isCompleted ? "You already handled today’s extra step." : "Optional support if you want a little more momentum.",
             icon: isCompleted ? "checkmark.circle.fill" : action.symbol,
             showsChevron: false
         ) {
@@ -672,6 +733,85 @@ struct HomeView: View {
 
     private func isTodayActionCompleted(_ action: TodayAction) -> Bool {
         appState.isTodayActionCompleted(action.rawValue)
+    }
+
+    private var isSmokeFreeMarkedToday: Bool {
+        appState.didSmokeFreeCheckInToday
+    }
+
+    private var smokeFreeTodayActionTitle: String {
+        isSmokeFreeMarkedToday ? "Marked today as smoke-free" : "Mark today as smoke-free"
+    }
+
+    private func toggleSmokeFreeToday() {
+        guard !isSmokeFreeMarkedToday else { return }
+
+        let previousState = appState.smokeFreeStreakState
+        appState.markSmokeFreeForToday()
+        OnboardingHaptics.success()
+        appState.showRewardToast(
+            title: smokeFreeCheckinToastTitle(for: previousState),
+            message: smokeFreeCheckinToastMessage(for: previousState)
+        )
+    }
+
+    private var heroStreakTitle: String {
+        switch appState.smokeFreeStreakState {
+        case .active:
+            return appState.smokeFreeStreakCount > 0 ? "\(appState.smokeFreeStreakCount)-day streak" : "Start your streak"
+        case .onIce:
+            return appState.smokeFreeStreakCount > 0 ? "\(appState.smokeFreeStreakCount)-day streak" : "Streak on ice"
+        case .lost:
+            return "Start your streak"
+        }
+    }
+
+    private var dailyCheckInStatusText: String {
+        if isSmokeFreeMarkedToday {
+            return "✓ Completed"
+        }
+
+        switch appState.smokeFreeStreakState {
+        case .active:
+            return "Not checked in yet"
+        case .onIce:
+            return "Streak on ice"
+        case .lost:
+            return "Streak lost"
+        }
+    }
+
+    private var dailyCheckInStatusColor: Color {
+        switch appState.smokeFreeStreakState {
+        case .active:
+            return isSmokeFreeMarkedToday ? Color.buttonBottom : Color.ink
+        case .onIce:
+            return Color.orange
+        case .lost:
+            return Color.secondaryText
+        }
+    }
+
+    private func smokeFreeCheckinToastTitle(for previousState: SmokeFreeStreakState) -> String {
+        switch previousState {
+        case .active:
+            return "Today is on the board."
+        case .onIce:
+            return "Streak recovered."
+        case .lost:
+            return "A new streak starts today."
+        }
+    }
+
+    private func smokeFreeCheckinToastMessage(for previousState: SmokeFreeStreakState) -> String {
+        switch previousState {
+        case .active:
+            return "That daily commitment gives the rest of the day direction."
+        case .onIce:
+            return "You brought the streak back before it slipped away."
+        case .lost:
+            return "This check-in starts a fresh run."
+        }
     }
 }
 

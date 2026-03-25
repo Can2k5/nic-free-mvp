@@ -49,6 +49,7 @@ final class AuthManager: ObservableObject {
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var currentNonce: String?
     private let pendingEmailDefaultsKey = "auth.pendingEmailForSignIn"
+    private var lastProcessedEmailLink: String?
 
     init() {
         status = Self.makeStatus(from: Auth.auth().currentUser)
@@ -70,6 +71,9 @@ final class AuthManager: ObservableObject {
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             Task { @MainActor in
                 self?.status = Self.makeStatus(from: user)
+                self?.isLoading = false
+                self?.activeSignInProvider = nil
+                self?.authErrorMessage = nil
             }
         }
     }
@@ -92,22 +96,22 @@ final class AuthManager: ObservableObject {
         switch result {
         case .failure(let error):
             activeSignInProvider = nil
-            authErrorMessage = error.localizedDescription
+            authErrorMessage = Self.message(for: error, provider: .apple)
 
         case .success(let authorization):
             guard let appleCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
-                authErrorMessage = "Apple Sign-In did not return the expected credential."
+                authErrorMessage = "We couldn't finish Apple Sign-In right now. Please try again."
                 return
             }
 
             guard let nonce = currentNonce else {
-                authErrorMessage = "The sign-in request is missing its security nonce."
+                authErrorMessage = "We couldn't start Apple Sign-In right now. Please try again."
                 return
             }
 
             guard let identityTokenData = appleCredential.identityToken,
                   let identityToken = String(data: identityTokenData, encoding: .utf8) else {
-                authErrorMessage = "Apple Sign-In did not return a readable identity token."
+                authErrorMessage = "We couldn't finish Apple Sign-In right now. Please try again."
                 return
             }
 
@@ -129,7 +133,7 @@ final class AuthManager: ObservableObject {
                     self?.activeSignInProvider = nil
 
                     if let error {
-                        self?.authErrorMessage = error.localizedDescription
+                        self?.authErrorMessage = Self.message(for: error, provider: .apple)
                     } else {
                         self?.authErrorMessage = nil
                     }
@@ -143,12 +147,12 @@ final class AuthManager: ObservableObject {
         emailLinkSentTo = nil
 
         guard let clientID = FirebaseApp.app()?.options.clientID, !clientID.isEmpty else {
-            authErrorMessage = "Google Sign-In is not configured yet. Check GoogleService-Info.plist."
+            authErrorMessage = "Google Sign-In isn't available right now. Please try again later."
             return
         }
 
         guard let presentingViewController = Self.topViewController() else {
-            authErrorMessage = "Could not find the current screen to present Google Sign-In."
+            authErrorMessage = "We couldn't open Google Sign-In right now. Please try again."
             return
         }
 
@@ -174,7 +178,7 @@ final class AuthManager: ObservableObject {
             _ = try await Auth.auth().signIn(with: credential)
             authErrorMessage = nil
         } catch {
-            authErrorMessage = Self.message(for: error)
+            authErrorMessage = Self.message(for: error, provider: .google)
         }
 
         isLoading = false
@@ -196,7 +200,7 @@ final class AuthManager: ObservableObject {
         }
 
         guard let bundleID = Bundle.main.bundleIdentifier, !bundleID.isEmpty else {
-            authErrorMessage = "The app bundle ID is missing, so the email link cannot be prepared."
+            authErrorMessage = "Email sign-in isn't available right now. Please try again later."
             return
         }
 
@@ -217,7 +221,7 @@ final class AuthManager: ObservableObject {
             emailLinkSentTo = trimmedEmail
             authErrorMessage = nil
         } catch {
-            authErrorMessage = error.localizedDescription
+            authErrorMessage = Self.message(for: error, provider: .email)
         }
 
         isLoading = false
@@ -227,17 +231,22 @@ final class AuthManager: ObservableObject {
     func handleIncomingEmailLink(_ url: URL) async {
         let link = url.absoluteString
 
+        guard lastProcessedEmailLink != link else {
+            return
+        }
+
         guard Auth.auth().isSignIn(withEmailLink: link) else {
             return
         }
 
         guard let pendingEmail = pendingEmail else {
-            authErrorMessage = "Open the email link on the same device where you requested it."
+            authErrorMessage = "Open the sign-in link on the same device where you requested it."
             return
         }
 
         isLoading = true
         activeSignInProvider = .email
+        lastProcessedEmailLink = link
 
         do {
             // Firebase checks that the stored email and incoming email link belong together,
@@ -246,7 +255,8 @@ final class AuthManager: ObservableObject {
             clearPendingEmail()
             authErrorMessage = nil
         } catch {
-            authErrorMessage = error.localizedDescription
+            lastProcessedEmailLink = nil
+            authErrorMessage = Self.message(for: error, provider: .email)
         }
 
         isLoading = false
@@ -257,9 +267,10 @@ final class AuthManager: ObservableObject {
         do {
             GIDSignIn.sharedInstance.signOut()
             try Auth.auth().signOut()
+            clearPendingEmail()
             authErrorMessage = nil
         } catch {
-            authErrorMessage = error.localizedDescription
+            authErrorMessage = Self.message(for: error, provider: nil)
         }
     }
 
@@ -368,12 +379,51 @@ final class AuthManager: ObservableObject {
         return resolvedBase
     }
 
-    private static func message(for error: Error) -> String {
+    private static func message(for error: Error, provider: AuthProviderType?) -> String {
         if let gidError = error as? GIDSignInError, gidError.code == .canceled {
             return "Google Sign-In was canceled."
         }
 
-        return error.localizedDescription
+        if let authError = error as? ASAuthorizationError, authError.code == .canceled {
+            return "Apple Sign-In was canceled."
+        }
+
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            switch nsError.code {
+            case NSURLErrorNotConnectedToInternet,
+                 NSURLErrorNetworkConnectionLost,
+                 NSURLErrorTimedOut,
+                 NSURLErrorInternationalRoamingOff,
+                 NSURLErrorDataNotAllowed,
+                 NSURLErrorCannotFindHost,
+                 NSURLErrorCannotConnectToHost,
+                 NSURLErrorDNSLookupFailed:
+                switch provider {
+                case .google:
+                    return "Google Sign-In needs a connection right now. Please try again."
+                case .apple:
+                    return "Apple Sign-In needs a connection right now. Please try again."
+                case .email:
+                    return "We couldn't send the sign-in email right now. Please check your connection and try again."
+                default:
+                    return "Please check your connection and try again."
+                }
+            default:
+                break
+            }
+        }
+
+        switch provider {
+        case .google:
+            return "We couldn't sign you in with Google right now. Please try again."
+        case .apple:
+            return "We couldn't sign you in with Apple right now. Please try again."
+        case .email:
+            return "We couldn't complete email sign-in right now. Please try again."
+        default:
+            return "We couldn't complete that action right now. Please try again."
+        }
     }
 
     private func restorePendingEmailState() {

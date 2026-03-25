@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AchievementsView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
 
     @Namespace private var achievementNamespace
 
@@ -12,6 +13,7 @@ struct AchievementsView: View {
     @State private var detailContentVisible = false
     @State private var confettiRunID = UUID()
     @State private var showConfetti = false
+    @AppStorage("markers_locked_paywall_last_presented_at") private var markersLockedPaywallLastPresentedAt = 0.0
 
     private let badgeColumns = [
         GridItem(.flexible(), spacing: 14),
@@ -253,17 +255,37 @@ struct AchievementsView: View {
     }
 
     private var allAchievementsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("All progress markers")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.ink)
+        PremiumLockedContent(
+            isLocked: subscriptionManager.isFree,
+            message: "Unlock all progress markers.",
+            action: { presentLockedMarkersPaywallIfNeeded() }
+        ) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("All progress markers")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.ink)
 
-            LazyVGrid(columns: badgeColumns, spacing: 14) {
-                ForEach(appState.journeyAchievements) { achievement in
-                    achievementGridCard(achievement)
+                LazyVGrid(columns: badgeColumns, spacing: 14) {
+                    ForEach(appState.journeyAchievements) { achievement in
+                        achievementGridCard(achievement)
+                    }
                 }
             }
         }
+    }
+
+    private func presentLockedMarkersPaywallIfNeeded() {
+        guard subscriptionManager.isFree else {
+            showingPaywall = true
+            return
+        }
+
+        let now = Date().timeIntervalSince1970
+        let cooldown: TimeInterval = 120
+        guard now - markersLockedPaywallLastPresentedAt >= cooldown else { return }
+
+        markersLockedPaywallLastPresentedAt = now
+        showingPaywall = true
     }
 
     private func recentAchievementCard(_ achievement: JourneyAchievement) -> some View {

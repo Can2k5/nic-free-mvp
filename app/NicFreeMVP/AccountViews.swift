@@ -107,13 +107,6 @@ struct AccountDestinationView: View {
 struct AccountAuthView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.dismiss) private var dismiss
-    @FocusState private var focusedField: Field?
-    @State private var emailAddress = ""
-    @State private var showEmailEntry = false
-
-    private enum Field {
-        case email
-    }
 
     var body: some View {
         ZStack {
@@ -137,12 +130,6 @@ struct AccountAuthView: View {
                 .foregroundStyle(Color.ink)
             }
         }
-        .onAppear {
-            if let pendingEmail = authManager.pendingEmail {
-                emailAddress = pendingEmail
-                showEmailEntry = true
-            }
-        }
     }
 
     private var heroCard: some View {
@@ -162,12 +149,12 @@ struct AccountAuthView: View {
                     .textCase(.uppercase)
                     .tracking(1.1)
 
-                Text("Save your identity, keep your progress local.")
+                Text("Add an account if you want it.")
                     .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.ink)
                     .lineSpacing(2)
 
-                Text("Sign in lets the app recognize you. Your cravings, streaks, check-ins, and other personal progress still stay on this device.")
+                Text("Sign in is optional. It helps Ayo recognize you, while your cravings, streaks, check-ins, and personal progress still stay on this device.")
                     .font(.subheadline)
                     .foregroundStyle(Color.heroSecondaryText)
             }
@@ -177,22 +164,10 @@ struct AccountAuthView: View {
     private var providerButtons: some View {
         InsightCard(
             title: "Continue with",
-            subtitle: "Apple, Google, and Email all sign in with Firebase Auth. Your personal app data still stays on this device.",
+            subtitle: "Use Apple or Google if you want a simple account connection.",
             icon: "person.crop.circle.badge.checkmark"
         ) {
             VStack(spacing: AppSpacing.md) {
-                providerButton(
-                    title: "Continue with Google",
-                    subtitle: "Use your Google account",
-                    symbol: "g.circle",
-                    isEnabled: !authManager.isLoading,
-                    action: {
-                        Task {
-                            await authManager.signInWithGoogle()
-                        }
-                    }
-                )
-
                 SignInWithAppleButton(.continue) { request in
                     authManager.prepareAppleSignInRequest(request)
                 } onCompletion: { result in
@@ -205,22 +180,16 @@ struct AccountAuthView: View {
                 .opacity(authManager.isLoading ? 0.75 : 1)
 
                 providerButton(
-                    title: "Continue with Email",
-                    subtitle: "Send a secure sign-in link",
-                    symbol: "envelope.fill",
+                    title: "Continue with Google",
+                    subtitle: "Use your Google account",
+                    symbol: "g.circle",
                     isEnabled: !authManager.isLoading,
                     action: {
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
-                            showEmailEntry = true
+                        Task {
+                            await authManager.signInWithGoogle()
                         }
-                        focusedField = .email
                     }
                 )
-
-                if showEmailEntry || authManager.emailLinkSentTo != nil {
-                    emailLinkSection
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
 
                 if authManager.isLoading {
                     HStack(spacing: AppSpacing.sm) {
@@ -232,78 +201,34 @@ struct AccountAuthView: View {
                 }
 
                 if let message = authManager.authErrorMessage, !message.isEmpty {
-                    Text(message)
-                        .font(.footnote)
-                        .foregroundStyle(Color.red)
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color(red: 0.72, green: 0.28, blue: 0.26))
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Couldn't sign you in")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(Color.ink)
+
+                            Text(message)
+                                .font(.footnote)
+                                .foregroundStyle(Color.secondaryText)
+                                .lineSpacing(2)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color.surfaceElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color.border, lineWidth: 1)
+                    )
                 }
             }
         }
-    }
-
-    private var emailLinkSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            Text("Email link")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(Color.ink)
-
-            Text("Enter your email and the app will send a passwordless sign-in link. Open that link on your iPhone to finish signing in.")
-                .font(.subheadline)
-                .foregroundStyle(Color.secondaryText)
-
-            OnboardingInputField(
-                placeholder: "name@example.com",
-                text: $emailAddress,
-                isFocused: focusedField == .email,
-                keyboardType: .emailAddress,
-                textAlignment: .leading
-            )
-            .focused($focusedField, equals: .email)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .textContentType(.emailAddress)
-            .submitLabel(.send)
-            .onSubmit {
-                sendEmailLink()
-            }
-
-            Button {
-                sendEmailLink()
-            } label: {
-                Text(authManager.isLoading && authManager.activeSignInProvider == .email ? "Sending link..." : "Send sign-in link")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(Color.ink)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.heroTop.opacity(0.94), Color.cardBackground],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.border, lineWidth: 1)
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(authManager.isLoading)
-            .opacity(authManager.isLoading ? 0.75 : 1)
-
-            if let sentEmail = authManager.emailLinkSentTo {
-                Text("Check your email: we sent a sign-in link to \(sentEmail).")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.buttonBottom)
-            }
-        }
-        .padding(AppSpacing.md)
-        .background(Color.inputBackground.opacity(0.8))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.border, lineWidth: 1)
-        )
     }
 
     private var loadingMessage: String {
@@ -316,15 +241,6 @@ struct AccountAuthView: View {
             return "Preparing your email sign-in link..."
         default:
             return "Signing you in..."
-        }
-    }
-
-    private func sendEmailLink() {
-        let cleanedEmail = emailAddress.trimmingCharacters(in: .whitespacesAndNewlines)
-        emailAddress = cleanedEmail
-
-        Task {
-            await authManager.sendEmailSignInLink(to: cleanedEmail)
         }
     }
 
@@ -429,10 +345,17 @@ struct AccountInfoView: View {
     private var accountDetails: some View {
         InsightCard(
             title: "Account details",
-            subtitle: "Identity comes from Firebase Auth. Personal profile fields come from your local app data.",
+            subtitle: "Your sign-in comes from Apple or Google. Personal profile details stay on this device.",
             icon: "person.text.rectangle"
         ) {
             VStack(spacing: AppSpacing.md) {
+                if let message = authManager.authErrorMessage, !message.isEmpty {
+                    authMessageCard(
+                        title: "Couldn't update your account",
+                        message: message
+                    )
+                }
+
                 detailRow(title: "Name", value: snapshot.name)
                 detailRow(title: "Email", value: snapshot.email)
                 detailRow(title: "Login way", value: snapshot.provider)
@@ -458,6 +381,34 @@ struct AccountInfoView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    private func authMessageCard(title: String, message: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(red: 0.72, green: 0.28, blue: 0.26))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.ink)
+
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(Color.secondaryText)
+                    .lineSpacing(2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
     }
 
     private func detailRow(title: String, value: String) -> some View {

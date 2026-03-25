@@ -690,7 +690,8 @@ struct PaywallBenefitsList: View {
 
 struct PaywallPriceCard: View {
     let priceText: String
-    var supportingText: String = "7-day free trial"
+    var supportingText: String = "Plan details"
+    var detailText: String?
 
     var body: some View {
         VStack(alignment: .center, spacing: 10) {
@@ -705,9 +706,11 @@ struct PaywallPriceCard: View {
                 .foregroundStyle(Color.ink)
                 .multilineTextAlignment(.center)
 
-            Text("Billed monthly after trial.")
-                .font(.footnote)
-                .foregroundStyle(Color.secondaryText)
+            if let detailText {
+                Text(detailText)
+                    .font(.footnote)
+                    .foregroundStyle(Color.secondaryText)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
@@ -763,6 +766,11 @@ struct PaywallView: View {
 
     private var isBusy: Bool {
         subscriptionManager.isLoadingOfferings || subscriptionManager.isRestoringPurchases || subscriptionManager.purchasingPackageID != nil
+    }
+
+    private var isPurchasingSelectedPackage: Bool {
+        guard let selectedPackage else { return false }
+        return subscriptionManager.purchasingPackageID == selectedPackage.storeProduct.productIdentifier
     }
 
     var body: some View {
@@ -824,17 +832,18 @@ struct PaywallView: View {
                         if let selectedPackage {
                             PaywallPriceCard(
                                 priceText: priceText(for: selectedPackage),
-                                supportingText: supportingText(for: selectedPackage)
+                                supportingText: supportingText(for: selectedPackage),
+                                detailText: detailText(for: selectedPackage)
                             )
                         } else if subscriptionManager.isLoadingOfferings {
-                            PaywallPriceCard(priceText: "Loading...", supportingText: "Checking plans")
+                            PaywallPriceCard(priceText: "Loading...", supportingText: "Checking plans", detailText: "Please wait a moment.")
                                 .redacted(reason: .placeholder)
                         }
 
                         OnboardingPrimaryButton(
-                            title: subscriptionManager.purchasingPackageID == selectedPackage?.storeProduct.productIdentifier
+                            title: isPurchasingSelectedPackage
                                 ? "Starting..."
-                                : "Start Free Trial",
+                                : ctaTitle,
                             isEnabled: selectedPackage != nil && !isBusy,
                             action: startPurchase
                         )
@@ -849,29 +858,16 @@ struct PaywallView: View {
                         .disabled(isBusy)
                         .buttonStyle(SecondaryButtonStyle(isEnabled: !isBusy))
 
-                        if let errorMessage = subscriptionManager.errorMessage {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text(errorMessage)
-                                    .font(.footnote)
-                                    .foregroundStyle(Color.secondaryText)
-                                    .lineSpacing(3)
-
-                                Button("Try again") {
+                        if let notice = subscriptionManager.paywallNotice {
+                            PaywallNoticeCard(
+                                notice: notice,
+                                onRetry: {
                                     Task {
                                         await subscriptionManager.loadOfferings()
                                     }
-                                }
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(Color.buttonBottom)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(Color.surfaceElevated)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .stroke(Color.border, lineWidth: 1)
+                                },
+                                onRestore: restorePurchases,
+                                onContinue: dismissAnimated
                             )
                         }
 
@@ -945,7 +941,7 @@ struct PaywallView: View {
 
         return Button {
             selectedPackageID = package.storeProduct.productIdentifier
-            subscriptionManager.clearError()
+            subscriptionManager.clearPaywallNotice()
             debugPrint("[Paywall] Selected package id: \(package.storeProduct.productIdentifier)")
         } label: {
             HStack(spacing: 12) {
@@ -1052,8 +1048,8 @@ struct PaywallView: View {
 
     private func syncSelectedPackageID() {
         let preferredPackage = selectedPackage
-            ?? subscriptionManager.monthlyPackage
             ?? subscriptionManager.annualPackage
+            ?? subscriptionManager.monthlyPackage
             ?? subscriptionManager.availablePackages.first
         selectedPackageID = preferredPackage?.storeProduct.productIdentifier
         if let selectedPackageID {
@@ -1084,7 +1080,91 @@ struct PaywallView: View {
     }
 
     private func supportingText(for package: Package) -> String {
-        package.storeProduct.introductoryDiscount == nil ? "Current plan" : "Free trial available"
+        if let introductoryDiscount = package.storeProduct.introductoryDiscount,
+           introductoryDiscount.paymentMode == .freeTrial {
+            return "\(subscriptionPeriodText(for: introductoryDiscount.subscriptionPeriod)) free trial"
+        }
+
+        return package.packageType == .annual ? "Billed yearly" : "Billed monthly"
+    }
+
+    private func detailText(for package: Package) -> String? {
+        switch package.packageType {
+        case .annual:
+            return "Renews yearly."
+        case .monthly:
+            return "Renews monthly."
+        default:
+            return nil
+        }
+    }
+
+    private var ctaTitle: String {
+        guard let selectedPackage else { return "Continue" }
+        return packageHasFreeTrial(selectedPackage) ? "Start Free Trial" : "Continue"
+    }
+
+    private func packageHasFreeTrial(_ package: Package) -> Bool {
+        package.storeProduct.introductoryDiscount?.paymentMode == .freeTrial
+    }
+
+    private func subscriptionPeriodText(for period: SubscriptionPeriod) -> String {
+        let unit: String
+        switch period.unit {
+        case .day:
+            unit = period.value == 1 ? "day" : "days"
+        case .week:
+            unit = period.value == 1 ? "week" : "weeks"
+        case .month:
+            unit = period.value == 1 ? "month" : "months"
+        case .year:
+            unit = period.value == 1 ? "year" : "years"
+        @unknown default:
+            unit = "period"
+        }
+
+        return "\(period.value)-\(unit)"
+    }
+}
+
+struct PaywallNoticeCard: View {
+    let notice: SubscriptionManager.PaywallNotice
+    let onRetry: () -> Void
+    let onRestore: () -> Void
+    let onContinue: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(notice.message)
+                .font(.footnote)
+                .foregroundStyle(Color.secondaryText)
+                .lineSpacing(3)
+
+            HStack(spacing: 14) {
+                if notice.allowsRetry {
+                    Button("Try again", action: onRetry)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.buttonBottom)
+                }
+
+                Button("Restore purchases", action: onRestore)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.buttonBottom)
+
+                Button("Continue with limited access", action: onContinue)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.buttonBottom)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(notice.tone == .error ? Color.surfaceElevated : Color.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
     }
 }
 
@@ -1437,6 +1517,85 @@ struct ActionCard<Content: View>: View {
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+struct PremiumLockedContent<Content: View>: View {
+    let isLocked: Bool
+    let title: String
+    let message: String
+    let action: () -> Void
+    @ViewBuilder let content: Content
+
+    init(
+        isLocked: Bool,
+        title: String = "Premium feature",
+        message: String,
+        action: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.isLocked = isLocked
+        self.title = title
+        self.message = message
+        self.action = action
+        self.content = content()
+    }
+
+    var body: some View {
+        ZStack {
+            content
+                .saturation(isLocked ? 0.15 : 1)
+                .blur(radius: isLocked ? 9 : 0)
+                .opacity(isLocked ? 0.22 : 1)
+                .allowsHitTesting(!isLocked)
+                .overlay {
+                    if isLocked {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.appBackgroundTop.opacity(0.46),
+                                        Color.cardBackground.opacity(0.72),
+                                        Color.appBackgroundBottom.opacity(0.56)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                }
+
+            if isLocked {
+                Button(action: action) {
+                    VStack(spacing: AppSpacing.sm) {
+                        Image(systemName: "lock.fill")
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(Color.buttonBottom)
+                            .frame(width: 42, height: 42)
+                            .background(Color.cardBackground.opacity(0.96))
+                            .clipShape(Circle())
+
+                        Text(title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.ink)
+
+                        Text(message)
+                            .font(.footnote)
+                            .foregroundStyle(Color.secondaryText)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(AppSpacing.lg)
+                    .frame(maxWidth: 220)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .stroke(Color.border.opacity(0.72), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }

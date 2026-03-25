@@ -1,0 +1,197 @@
+ayo – Auth, Daten & Infrastruktur Status (MVP)
+Überblick
+Dieses Dokument beschreibt den aktuellen technischen Stand der App im Bereich:
+	•	Authentifizierung
+	•	Datenarchitektur
+	•	Analytics
+	•	Hosting & Link-Infrastruktur
+Ziel ist es, einen klaren Überblick zu geben, wie das System aktuell aufgebaut ist und wie nah es am Publish-Level ist.
+
+1. Architektur (High-Level)
+Die App folgt einer local-first Architektur mit minimalem Backend.
+Prinzipien:
+	•	User-Daten bleiben lokal auf dem Gerät
+	•	Firebase wird nur für Identität genutzt
+	•	Keine zentrale Datenbank für Produktdaten
+	•	Analytics getrennt von Produktlogik
+Komponenten:
+Bereich
+Technologie
+Zweck
+Auth
+Firebase Auth
+Identität (Login)
+Hosting
+Firebase Hosting
+Email-Link / Domain
+Analytics
+PostHog
+Event Tracking
+App-Daten
+Local Storage (Swift)
+Produktlogik
+UI
+SwiftUI
+Frontend
+
+2. Authentifizierung
+Aktueller Stand
+✅ Apple Sign-In
+	•	Vollständig implementiert
+	•	Stabil
+	•	Production-ready
+✅ Google Sign-In
+	•	Vollständig implementiert
+	•	Stabil
+	•	Production-ready
+🟡 Email Link Sign-In
+	•	Technisch implementiert
+	•	Firebase + Hosting + Universal Links konfiguriert
+	•	AASA (apple-app-site-association) manuell gehostet
+	•	iOS Universal Link Setup vorhanden
+Status:
+	•	Funktional noch nicht final verifiziert (wegen Firebase Quota)
+	•	Wird aktuell im UI als "Coming soon" dargestellt
+
+Technische Details
+Firebase Auth
+	•	dient ausschließlich als Identity Layer
+	•	speichert:
+	◦	User-ID
+	◦	Email
+	◦	Provider (Apple / Google)
+Email-Link Flow
+	•	basiert auf Firebase Auth Email Link
+	•	nutzt Firebase Hosting Domain:
+	◦	ayo-freenic.firebaseapp.com
+	•	Universal Links über:
+	◦	Associated Domains in iOS
+	•	AASA-Datei wird selbst gehostet unter:
+	◦	/.well-known/apple-app-site-association
+
+3. Datenarchitektur (Local-First)
+Grundprinzip
+Alle produktrelevanten Daten werden lokal auf dem Gerät gespeichert.
+Gespeicherte Daten:
+	•	Onboarding-Antworten
+	•	Birthday (Quelle der Wahrheit)
+	•	Alter (abgeleitet)
+	•	Geschlecht
+	•	Cravings
+	•	Slips
+	•	Progress / Streaks
+	•	Settings
+Wichtige Entscheidungen:
+	•	Birthday → berechnet Age
+	•	Keine redundanten Felder
+	•	Klare Trennung von Profil / Progress / State
+
+Vorteile
+	•	Keine Backend-Abhängigkeit
+	•	Datenschutzfreundlich
+	•	Schnelle Performance
+	•	Offline-first Nutzung möglich
+
+4. Analytics (PostHog)
+Setup
+PostHog wird für leichtgewichtiges Event Tracking genutzt.
+Eigenschaften:
+	•	Minimaler Event-Scope
+	•	Fokus auf Funnel & Verhalten
+	•	Keine Datenüberladung
+
+Aktuelle Events
+	•	app_opened
+	•	home_viewed
+	•	onboarding_started
+	•	onboarding_step_viewed (mit step property)
+	•	onboarding_completed
+	•	paywall_viewed
+	•	purchase_completed
+	•	craving_rescue_started
+	•	craving_rescue_completed
+
+Bewertung
+	•	Sehr gut für MVP
+	•	Skalierbar
+	•	Free-tier freundlich
+
+5. Hosting & Link-Infrastruktur
+Firebase Hosting
+	•	Domain aktiv:
+	◦	ayo-freenic.firebaseapp.com
+	◦	ayo-freenic.web.app
+	•	Statische Seite deployed:
+	◦	dient als Auth- und Link-Endpunkt
+
+AASA (Apple App Site Association)
+Custom gehostet:
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "9LD3X3K9BX.com.can.ayomvp",
+        "paths": ["/*"]
+      }
+    ]
+  }
+}
+Zweck:
+	•	Verknüpft Domain mit iOS App
+	•	Ermöglicht Universal Links (Email Login)
+
+Universal Links
+	•	In Xcode konfiguriert:
+	◦	applinks:ayo-freenic.firebaseapp.com
+	•	App verarbeitet:
+	◦	onOpenURL
+	◦	NSUserActivityTypeBrowsingWeb
+
+6. Aktueller Fortschritt (Bewertung)
+Gesamtstatus: ~85% Publish-ready
+🟢 Fertig
+	•	Apple Auth
+	•	Google Auth
+	•	Local Data Architecture
+	•	Hosting Setup
+	•	Analytics Setup
+🟡 Fast fertig
+	•	Email Auth (technisch fertig, UI disabled)
+	•	Universal Links final verifiziert
+🔴 Offen (optional)
+	•	Monetarisierung (falls geplant)
+	•	Cloud Sync (nicht erforderlich)
+	•	Datenschutz-/Policy-Seiten
+
+7. Aktuelle Produktentscheidung
+Für den ersten Release:
+	•	✅ Apple Login
+	•	✅ Google Login
+	•	❌ Email Login → Coming soon
+Begründung:
+	•	Vermeidung von halb-fertigen Features
+	•	Stabiler First Release
+	•	Reduktion von Support-Aufwand
+
+8. Nächste Schritte
+Kurzfristig:
+	•	Email Login final testen (nach Firebase Quota Reset oder Blaze Plan)
+	•	UI-Polish im Account-Bereich
+	•	Release vorbereiten
+Mittelfristig:
+	•	Email Login aktivieren
+	•	ggf. Monetarisierung integrieren
+	•	Analytics erweitern
+
+Fazit
+Die aktuelle Architektur ist:
+	•	sauber
+	•	minimalistisch
+	•	skalierbar
+	•	MVP-geeignet
+Besonders stark:
+	•	konsequente local-first Strategie
+	•	klare Trennung von Auth und Daten
+	•	bewusst reduzierte Analytics
+Die App ist technisch bereit für einen ersten Release mit kleinen gezielten Anpassungen.

@@ -2,23 +2,21 @@
 
 ## What was added
 
-- The existing `Continue with Email` area in the account screen now supports real passwordless email link sign-in with Firebase Auth.
-- Users can enter an email address inside the current custom account UI.
-- The app sends a Firebase sign-in link using `ActionCodeSettings`.
+- The app includes an underlying passwordless email link sign-in implementation with Firebase Auth.
+- The app can send a Firebase sign-in link using `ActionCodeSettings`.
 - When the app is opened from that email link, `AuthManager` detects it and completes sign-in with Firebase Auth.
 - The pending email address is saved locally in `UserDefaults` until sign-in finishes.
+- For the first release, Email remains intentionally hidden behind a polished `Coming soon` state in the account screen.
 
 ## How the flow works
 
-1. The user opens the account screen while signed out.
-2. The user taps `Continue with Email`.
-3. The app shows an email field and a `Send sign-in link` button.
-4. `AuthManager` sends a Firebase email link to that address.
-5. The app saves that email address locally so it can finish sign-in later.
-6. The user opens the email on iPhone and taps the sign-in link.
-7. The app receives that incoming link.
-8. `AuthManager` checks whether the URL is a Firebase email sign-in link.
-9. If it is, Firebase Auth signs in with the saved email address and the incoming link.
+1. The app prepares an email address for passwordless sign-in.
+2. `AuthManager` sends a Firebase email link to that address.
+3. The app saves that email address locally so it can finish sign-in later.
+4. The user opens the email on iPhone and taps the sign-in link.
+5. The app receives that incoming link.
+6. `AuthManager` checks whether the URL is a Firebase email sign-in link.
+7. If it is, Firebase Auth signs in with the saved email address and the incoming link.
 
 ## Firebase assumptions
 
@@ -37,25 +35,10 @@ This setup assumes:
 - `handleCodeInApp = true`
 - iOS bundle ID comes from `Bundle.main.bundleIdentifier`
 
-## How to test it
+## Release note
 
-### On iPhone
-
-1. Run the app on a device.
-2. Open the signed-out account screen.
-3. Tap `Continue with Email`.
-4. Enter an email address you can open on that same device.
-5. Tap `Send sign-in link`.
-6. Confirm the app shows the `Check your email` success state.
-7. Open the email and tap the Firebase sign-in link.
-8. The app should open and complete sign-in.
-9. The account screen should show the signed-in state with provider `Email`.
-
-### On simulator
-
-You can still test sending the email link from the simulator.
-To fully test completion, you need the incoming link to open the simulator app correctly.
-Device testing is usually the most reliable for this flow.
+For launch, the account screen keeps Email in a clear `Coming soon` state.
+The underlying implementation stays in progress in the codebase, but it is intentionally not exposed in the visible release UI yet.
 
 ## What remains local
 

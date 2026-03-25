@@ -9,8 +9,10 @@ struct CravingRescueView: View {
 
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var analytics: AnalyticsService
+    @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @Binding var selectedTab: RootTabView.Tab
     let startInReflection: Bool
+    @AppStorage("rescue_completion_paywall_shown") private var rescueCompletionPaywallShown = false
     @State private var secondsRemaining: Int = 90
     @State private var timerActive = false
     @State private var sessionStarted = false
@@ -18,6 +20,7 @@ struct CravingRescueView: View {
     @State private var selectedIntensity: Int = 3
     @State private var selectedTrigger: CravingTrigger?
     @State private var handledSessionID: UUID?
+    @State private var showingPaywall = false
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -63,12 +66,20 @@ struct CravingRescueView: View {
         .onChange(of: appState.activeRescueSessionID) { _ in
             startSessionIfNeeded()
         }
+        .onChange(of: phase) { newPhase in
+            guard newPhase == .success else { return }
+            scheduleRescueCompletionPaywallIfNeeded()
+        }
         .onAppear {
             analytics.track(.cravingRescueStarted, properties: ["rescue_type": "timer"])
             startSessionIfNeeded()
             if startInReflection {
                 phase = .reflection
             }
+        }
+        .fullScreenCover(isPresented: $showingPaywall) {
+            PaywallView(onClose: { showingPaywall = false })
+                .presentationBackground(.clear)
         }
     }
 
@@ -352,6 +363,18 @@ struct CravingRescueView: View {
 
             helperText("This helps the app learn your patterns and keeps your progress up to date.")
                 .softEntrance(delay: 0.26, distance: 10, animation: MicroAnimation.supportiveReveal)
+        }
+    }
+
+    private func scheduleRescueCompletionPaywallIfNeeded() {
+        guard subscriptionManager.isFree, !rescueCompletionPaywallShown else { return }
+
+        rescueCompletionPaywallShown = true
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700))
+            guard phase == .success else { return }
+            showingPaywall = true
         }
     }
 

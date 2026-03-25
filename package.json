@@ -1,0 +1,12 @@
+{
+  "name": "ayo-firebase-tools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Minimal Firebase admin scripts for the ayo project.",
+  "scripts": {
+    "configure:email-link-domain": "node scripts/configure-email-link-domain.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

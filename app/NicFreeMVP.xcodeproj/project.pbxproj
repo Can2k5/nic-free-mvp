@@ -33,6 +33,7 @@
 		A10000000000000000000030 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002F /* Analytics.swift */; };
 		A10000000000000000000035 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000034 /* AuthManager.swift */; };
 		A10000000000000000000037 /* AccountViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000036 /* AccountViews.swift */; };
+		A10000000000000000000039 /* LocalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000038 /* LocalNotificationManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +61,7 @@
 		A1000000000000000000002F /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
 		A10000000000000000000034 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		A10000000000000000000036 /* AccountViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountViews.swift; sourceTree = "<group>"; };
+		A10000000000000000000038 /* LocalNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotificationManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -125,6 +127,7 @@
 				A1000000000000000000002F /* Analytics.swift */,
 				A10000000000000000000034 /* AuthManager.swift */,
 				A10000000000000000000036 /* AccountViews.swift */,
+				A10000000000000000000038 /* LocalNotificationManager.swift */,
 				5366F8F92F72B8FE00777BA0 /* GoogleService-Info.plist */,
 				36DACC082F6C110600CABF5E /* DesignReference */,
 				A10000000000000000000008 /* Assets.xcassets */,
@@ -240,6 +243,7 @@
 				A10000000000000000000011 /* NicFreeMVPApp.swift in Sources */,
 				A1000000000000000000001B /* OnboardingView.swift in Sources */,
 				A1000000000000000000001F /* ProfileView.swift in Sources */,
+				A10000000000000000000039 /* LocalNotificationManager.swift in Sources */,
 				A1000000000000000000001E /* RescuePlaceholderViews.swift in Sources */,
 				A1000000000000000000001D /* RescueOptionsView.swift in Sources */,
 				A10000000000000000000013 /* RootTabView.swift in Sources */,
